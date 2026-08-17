@@ -1,0 +1,19 @@
+Portfolio site — version 3  (2026-08-17)
+
+This is the newest bundle. If the copy you are looking at does not match this file,
+you have an older zip.
+
+What v3 contains that v1 (the first bundle) did not:
+  - contact email changed to anthony@anthonyellis.dev everywhere (was the personal Gmail)
+  - every GitHub link points at github.com/AnthonyEllisDev (was LinkFarore)
+  - resume.pdf, resume.docx and resume-source.html
+  - CNAME (contains: anthonyellis.dev)
+  - README.md, DEPLOY.md, EMAIL-SETUP.md, RECOVERY.md
+
+Quick check after you copy the files into the repo — run this in the repo folder:
+
+    grep -c anthonyellis702 index.html     # must print 0
+    grep -c AnthonyEllisDev index.html     # must print 3 or more
+    ls resume.pdf CNAME                    # both must exist
+
+If all three pass, commit and push.

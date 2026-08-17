@@ -1,4 +1,11 @@
-# Deploying
+# Deploying — READ THIS FIRST
+
+**This is bundle v3.** The site currently live is v1: it still shows the personal Gmail
+address, still links to `github.com/LinkFarore`, and its Résumé button 404s because
+`resume.pdf` was never pushed. Copying this folder over the repo fixes all three.
+
+`SITE-VERSION.txt` lists exactly what changed and how to verify you have the right copy.
+
 
 Everything in this folder belongs at the **root of the `portfolio` repo**, including the
 `CNAME` file — that one is what binds anthonyellis.dev to the repo. See `RECOVERY.md` if
