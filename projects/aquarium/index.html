@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aquarium &amp; Cellular Automata Sandbox — Anthony Ellis</title>
+<meta name="description" content="Thousands of boids flocking around a falling-sand cellular automaton you can sculpt live. Structure-of-arrays typed buffers, a spatial hash for O(n) flocking, and a telemetry HUD that proves it.">
+<link rel="canonical" href="https://anthonyellis.dev/projects/aquarium/">
+<meta name="theme-color" content="#070a10">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="anthonyellis.dev">
+<meta property="og:title" content="Aquarium &amp; Cellular Automata Sandbox">
+<meta property="og:description" content="Boids and falling sand in one loop — typed-array pools, spatial hashing, and live telemetry.">
+<meta property="og:url" content="https://anthonyellis.dev/projects/aquarium/">
+<meta property="og:image" content="https://anthonyellis.dev/assets/img/aquarium.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/#work">Work</a>
+      <a href="/#about" class="hide-sm">About</a>
+      <a href="/#contact">Contact</a>
+      <a href="https://github.com/LinkFarore">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="case-hero">
+    <a class="backlink" href="/#work">← All projects</a>
+    <p class="eyebrow">Flocking · Cellular automata</p>
+    <h1>Aquarium &amp; Cellular Automata Sandbox</h1>
+    <p class="lede">
+      Two simulations sharing one frame budget: a flock of up to 4,000 fish, and a falling-sand bed
+      you can dig, pile and flatten underneath them while they swim.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/demos/aquarium.html">Launch demo <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="https://github.com/LinkFarore">Source on GitHub</a>
+    </div>
+  </div>
+
+  <div class="shotframe">
+    <img src="/assets/img/aquarium.jpg"
+         alt="Hundreds of small glowing fish in five colours flocking through dark blue water above a sculpted sand bed, lit by drifting light rays."
+         width="1200" height="750">
+  </div>
+  <p class="caption">390 fish across five colour groups, 6,327 sand cells, dunes and a trench cut by hand. The HUD reports the neighbour checks per frame.</p>
+
+  <dl class="factgrid">
+    <div class="fact"><dt>Role</dt><dd>Sole developer</dd></div>
+    <div class="fact"><dt>Stack</dt><dd>Vanilla JS · Canvas 2D</dd></div>
+    <div class="fact"><dt>Capacity</dt><dd>4,000 fish, pre-allocated</dd></div>
+    <div class="fact"><dt>Per-frame allocation</dt><dd>None in the hot path</dd></div>
+    <div class="fact"><dt>Dependencies</dt><dd>None</dd></div>
+  </dl>
+
+  <article class="case">
+
+    <h2>The idea</h2>
+    <p>
+      This one started as a performance exercise. Naive boids are <strong>O(n²)</strong> — every
+      fish asks every other fish where it is — and they fall over somewhere around a few hundred
+      agents. I wanted to find out what actually has to change to run thousands, and I wanted the
+      answer visible on screen rather than in a blog post, so the whole thing ships with a live
+      telemetry panel: frame time, fish count, active sand cells, and the number of neighbour checks
+      the spatial grid performed this frame.
+    </p>
+
+    <h2>Three decoupled systems, one flat state</h2>
+    <p>
+      Physics, AI and rendering never call into each other; they read and write the same typed
+      arrays.
+    </p>
+    <ul>
+      <li><strong>Physics</strong> — falling-sand cellular automaton over a <code>Uint8Array</code> grid.</li>
+      <li><strong>AI</strong> — a structure-of-arrays fish pool steered by a spatial hash.</li>
+      <li><strong>Renderer</strong> — water, caustics, sand, fish, overlays, in that order.</li>
+    </ul>
+
+    <h3>The fish pool is a struct-of-arrays with a free list</h3>
+    <p>
+      Position, velocity, tail phase, wiggle rate, palette index and an active flag each live in
+      their own pre-allocated typed array of length 4,000. Spawning pops an index off a free-list
+      stack; killing pushes it back. There are no objects, no garbage, and no allocation during play —
+      spawning 4,000 fish allocates nothing at all, because the memory was there from the first frame.
+      Colour is stored as a <strong>one-byte palette index</strong> rather than a string, with a small
+      registry mapping indices to hex, RGB and a pre-lightened highlight.
+    </p>
+
+    <h3>The spatial hash makes flocking linear</h3>
+    <p>
+      Each frame, fish are bucketed into a uniform grid whose cell size equals the perception radius,
+      using a <code>heads</code>/<code>next</code> pair of integer arrays — an intrusive linked list
+      per bucket, rebuilt by overwriting rather than reallocating. A fish then only examines the 3×3
+      block of buckets around itself. The same structure answers the two interaction queries for
+      free: <em>nearest fish to the cursor</em> for click-to-remove, and <em>all fish inside a
+      rectangle</em> for drag-select. Toggle "show spatial grid" in the demo and you can see the
+      buckets it is actually using.
+    </p>
+
+    <h3>Sand that is a real cellular automaton</h3>
+    <p>
+      Bottom-up scan; a grain falls if the cell below is empty, otherwise it tries the two diagonals.
+      The scan direction alternates per row and per frame, because a fixed left-to-right sweep makes
+      every pile visibly drift one way — a bias you only notice once you have watched a few thousand
+      grains settle. Sand is drawn in horizontal <strong>runs</strong> rather than per cell, with a
+      second pass that puts a bright rim on the topmost surface cell of each column, which is what
+      makes a one-byte grid read as a lit surface.
+    </p>
+
+    <h2>Where the two simulations meet</h2>
+    <p>
+      Fish have to avoid terrain that the player is reshaping in real time — and terrain avoidance is
+      where most flocking demos start doing expensive things. Here it is three <code>O(1)</code>
+      lookups into the sand grid: one probe ahead along the heading, and two perpendicular probes to
+      find the freer side. The fish then steers toward the open side and brakes into the wall. A fish
+      that ends up buried gets a hard upward push, so burying the flock with the Add brush is
+      recoverable rather than fatal.
+    </p>
+
+    <div class="notecard">
+      <p>Boids are usually shown in empty space. Making them share a world with a mutable cellular automaton is the part that forced the sand grid to be cheap to sample — the AI queries it hundreds of times per frame.</p>
+    </div>
+
+    <h2>Rendering tricks worth stealing</h2>
+    <ul>
+      <li><strong>One matrix instead of a transform stack.</strong> Each fish is drawn with a single <code>setTransform(cos, sin, -sin, cos, x, y)</code>, built from the normalised velocity — no <code>save</code>/<code>restore</code>, and no <code>atan2</code> anywhere in the draw loop.</li>
+      <li><strong>Gradients are cached per colour</strong> in local coordinates and reused across every fish of that colour, instead of allocating a gradient per fish per frame.</li>
+      <li><strong>Level of detail by population.</strong> Above 700 fish the glow goes; above 1,000 the eyes and dorsal highlight go. Frame rate degrades by dropping detail, not by dropping to a slideshow.</li>
+      <li><strong>Light rays and caustics</strong> are drawn with <code>lighter</code> compositing over a vertical water gradient — cheap, and it sells the depth more than any per-pixel effect would.</li>
+    </ul>
+
+    <h2>What I'd do next</h2>
+    <ul>
+      <li>Water as a second CA layer, so digging a trench actually moves the fish with it.</li>
+      <li>Predators, and a fear term in the steering — the interesting boids behaviour is the panic.</li>
+      <li>Move the flock update to WebGL or a compute-style ping-pong texture and see how far past 4,000 it goes.</li>
+      <li>Touch input, so it works properly on a phone.</li>
+    </ul>
+
+    <div class="cta-row" style="margin-top:36px">
+      <a class="btn btn-primary" href="/demos/aquarium.html">Open the sandbox <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="mailto:anthonyellis702@gmail.com">Ask me about it</a>
+    </div>
+
+    <nav class="pager">
+      <a href="/projects/arterial/">← Arterial — City Traffic Simulator</a>
+      <a href="/#work">All projects →</a>
+    </nav>
+  </article>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© <span class="yr">2026</span> Anthony Ellis</span>
+    <span><a href="/#work">All projects</a></span>
+  </div>
+</footer>
+
+<script>document.querySelectorAll('.yr').forEach(e => e.textContent = new Date().getFullYear());</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://anthonyellis.dev/</loc><priority>1.0</priority></url>
+  <url><loc>https://anthonyellis.dev/projects/galaxy/</loc><priority>0.8</priority></url>
+  <url><loc>https://anthonyellis.dev/projects/arterial/</loc><priority>0.8</priority></url>
+  <url><loc>https://anthonyellis.dev/projects/aquarium/</loc><priority>0.8</priority></url>
+  <url><loc>https://anthonyellis.dev/demos/galaxy.html</loc><priority>0.6</priority></url>
+  <url><loc>https://anthonyellis.dev/demos/arterial.html</loc><priority>0.6</priority></url>
+  <url><loc>https://anthonyellis.dev/demos/aquarium.html</loc><priority>0.6</priority></url>
+</urlset>
