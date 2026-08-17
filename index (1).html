@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arterial — City Traffic Simulator — Anthony Ellis</title>
+<meta name="description" content="A browser city traffic and logistics simulator: Intelligent Driver Model car-following, MOBIL lane changing, reservation-based junction arbitration and A* routing over lane space.">
+<link rel="canonical" href="https://anthonyellis.dev/projects/arterial/">
+<meta name="theme-color" content="#070a10">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="anthonyellis.dev">
+<meta property="og:title" content="Arterial — City Traffic Simulator">
+<meta property="og:description" content="Draw roads, zone land, watch the city jam. IDM car-following, MOBIL lane changes, reservation-based junctions.">
+<meta property="og:url" content="https://anthonyellis.dev/projects/arterial/">
+<meta property="og:image" content="https://anthonyellis.dev/assets/img/arterial.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/#work">Work</a>
+      <a href="/#about" class="hide-sm">About</a>
+      <a href="/#contact">Contact</a>
+      <a href="https://github.com/LinkFarore">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="case-hero">
+    <a class="backlink" href="/#work">← All projects</a>
+    <p class="eyebrow">Agent simulation · Graph algorithms</p>
+    <h1>Arterial — City Traffic Simulator</h1>
+    <p class="lede">
+      Draw roads, zone land, and watch a city grow itself — then watch it jam. Congestion here is
+      never a number I chose; it is what happens when a few hundred independently-routed drivers
+      share the network you built.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/demos/arterial.html">Launch demo <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="https://github.com/LinkFarore">Source on GitHub</a>
+    </div>
+  </div>
+
+  <div class="shotframe">
+    <img src="/assets/img/arterial.jpg"
+         alt="Top-down view of a simulated city at dusk: a grid of streets and avenues with lane markings and roundabouts, coloured residential, commercial and industrial zones, buildings with lit windows, and cars queued at signals."
+         width="1200" height="750">
+  </div>
+  <p class="caption">A grid laid down in about a minute of play: 24 junctions, 35 roads, 115 buildings and 585 residents, at 07:11 p.m. in-game.</p>
+
+  <dl class="factgrid">
+    <div class="fact"><dt>Role</dt><dd>Sole developer</dd></div>
+    <div class="fact"><dt>Stack</dt><dd>Vanilla JS · Canvas 2D</dd></div>
+    <div class="fact"><dt>Scale</dt><dd>~2,900 lines, 12 sections</dd></div>
+    <div class="fact"><dt>Simulation</dt><dd>Fixed 60 Hz, interpolated render</dd></div>
+    <div class="fact"><dt>Dependencies</dt><dd>None</dd></div>
+  </dl>
+
+  <article class="case">
+
+    <h2>The idea</h2>
+    <p>
+      City builders usually fake traffic: cars are decoration and congestion is a heuristic applied
+      to a road tile. I wanted the opposite — <strong>simulate the drivers and let the city's
+      problems emerge</strong>. Every vehicle has a destination, plans its own route, follows the
+      car in front with a real car-following model, decides for itself whether a lane change is
+      worth it, and has to be granted permission to cross a junction. If an avenue backs up, it is
+      because too many of those decisions collided in the same place.
+    </p>
+
+    <h2>How a car gets from A to B</h2>
+
+    <h3>Roads are Bézier rails, not tiles</h3>
+    <p>
+      Each road is a quadratic Bézier centre line with an arc-length lookup table, so a car's
+      position along it is a single scalar <code>s</code> that maps to a real world point at a
+      constant rate. Lanes are parallel offsets of that curve — shift the endpoints along their
+      normals and re-derive the control point — which means lane geometry, markings, medians and
+      junction pads all fall out of one curve definition. Curvature also caps speed:
+      <code>v ≤ √(a_lat · R)</code>, so cars slow into tight bends without any special case.
+    </p>
+
+    <h3>Routing happens in lane space, not road space</h3>
+    <p>
+      A* runs over <em>lanes and the connectors between them</em>, not over road segments. That is
+      the detail that makes turning behave: a driver who needs to turn left three blocks ahead is
+      already paying for the lane changes in its route cost. The cost function adds a penalty per
+      radian of turn, per lane of lateral movement, and a term proportional to how jammed a lane
+      currently is — so drivers route around congestion rather than politely queueing into it.
+    </p>
+
+    <h3>Following: the Intelligent Driver Model</h3>
+    <p>
+      Acceleration comes from IDM, using the gap and relative speed to the leader — the standard
+      traffic-flow model, and the reason stop-and-go waves appear on a busy avenue without anything
+      in the code that says "make a wave".
+    </p>
+
+    <h3>Lane changing: MOBIL</h3>
+    <p>
+      A lane change is accepted only if the total advantage — mine plus a politeness factor times my
+      new follower's loss — clears a threshold, and only if I would not force that follower to brake
+      harder than a safety limit. Plus a small bias toward the kerb lane, so the network self-sorts
+      instead of everyone sitting in the median lane.
+    </p>
+
+    <h3>Junctions: reservations, not just lights</h3>
+    <p>
+      Every junction pre-computes which of its connectors physically conflict — two turning paths
+      whose rails cross. A car approaching a stop line requests a reservation over the connector it
+      wants; the arbiter grants it only when no conflicting reservation is live. Traffic lights sit
+      on top of this as an extra gate: approaches are clustered into two opposing phases using a
+      doubled-angle trick, so a signal plan is derived from the junction's geometry rather than
+      hand-authored per intersection.
+    </p>
+
+    <h2>Three problems that were harder than they looked</h2>
+
+    <h3>Roundabouts as a graph rewrite</h3>
+    <p>
+      A roundabout is not a special vehicle behaviour — it is a <strong>network mutation</strong>.
+      Building one deletes the junction, inserts a ring of nodes, subdivides long spans so each
+      quadratic stays a good circular arc, rewires every arm onto its ring node, and makes the ring
+      edges one-way. After that the existing yielding and reservation logic handles it, because from
+      the simulation's point of view it is just more road. Keeping the physics dumb and the graph
+      smart is what stopped this project from turning into a pile of special cases.
+    </p>
+
+    <h3>Editing a live network</h3>
+    <p>
+      You can upgrade a street to an avenue, split a road with a new junction, or bulldoze the road
+      a car is currently driving on. Rebuilding an edge replaces its <code>Lane</code> objects, so
+      every vehicle holding a reference has to be re-synced onto the new geometry, every affected
+      node's connector set re-synthesised, and every building's kerb attachment re-resolved. Getting
+      that right — instead of leaking ghost cars and orphaned buildings — was most of the work.
+    </p>
+
+    <h3>Deadlock, the honest kind</h3>
+    <p>
+      Two failure modes showed up the moment the network got dense. A car stuck at a stop line in
+      the wrong lane would wait forever for a gap that could never come — so it now re-plans a route
+      that starts from the lane it is <em>actually</em> in. And a stalled reservation could hold a
+      junction hostage indefinitely, so reservations expire. Both are cases where the physically
+      correct rule needed an escape hatch to stay playable.
+    </p>
+
+    <h2>The city on top</h2>
+    <p>
+      Zoning paints a coarse grid; a cell develops only if it can reach a road within a distance
+      band, which is why buildings line the streets you draw instead of appearing in the middle of a
+      block. A building's address is <code>(edge, direction, lane, t)</code> — a point on a lane —
+      so its residents leave from and return to a specific kerb. Homes generate trips to jobs and
+      shops on a timer, freight runs from industry, buildings level up or get abandoned based on how
+      well they are actually being served, and the day/night cycle drives both the lighting and the
+      rhythm of demand.
+    </p>
+
+    <div class="notecard">
+      <p><strong>Determinism where it counts:</strong> map generation runs on a seeded <code>mulberry32</code> PRNG. Reproducible maps make reproducible bugs.</p>
+    </div>
+
+    <h2>Performance notes</h2>
+    <ul>
+      <li><strong>Fixed 60 Hz simulation, interpolated rendering</strong> — physics never depends on frame rate, and the 2× / 4× speed controls step the sim more times rather than making cars teleport.</li>
+      <li><strong>Geometry is cached, not recomputed.</strong> Lane offsets, road markings, median lines and junction pads are built once per edit and reused every frame.</li>
+      <li><strong>Per-lane vehicle indices</strong> keep leader/follower lookups local, so car-following does not scan the world.</li>
+      <li>The city in the screenshot above — 35 roads, 115 buildings — holds <strong>58–60 fps</strong> with the whole render pipeline on.</li>
+    </ul>
+
+    <h2>What I'd do next</h2>
+    <ul>
+      <li>Public transport: buses on fixed routes are a good stress test for the reservation system.</li>
+      <li>Adaptive signal timing driven by measured queue length, and a comparison view against the fixed plan.</li>
+      <li>Move routing into a Web Worker — A* is the only thing that can spike a frame.</li>
+      <li>Save/load, so a city worth showing off survives a refresh.</li>
+    </ul>
+
+    <div class="cta-row" style="margin-top:36px">
+      <a class="btn btn-primary" href="/demos/arterial.html">Build a city <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="mailto:anthony@anthonyellis.dev">Ask me about it</a>
+    </div>
+
+    <nav class="pager">
+      <a href="/projects/galaxy/">← Procedural Galaxy Generator</a>
+      <a href="/projects/aquarium/">Next: Aquarium Sandbox →</a>
+    </nav>
+  </article>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© <span class="yr">2026</span> Anthony Ellis</span>
+    <span><a href="/#work">All projects</a></span>
+  </div>
+</footer>
+
+<script>document.querySelectorAll('.yr').forEach(e => e.textContent = new Date().getFullYear());</script>
+</body>
+</html>

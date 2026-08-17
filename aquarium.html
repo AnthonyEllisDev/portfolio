@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquarium &amp; Cellular Automata Sandbox</title>
+<style>
+  :root {
+    --panel-bg: rgba(14, 22, 40, 0.72);
+    --panel-border: rgba(120, 170, 220, 0.14);
+    --panel-glow: rgba(76, 201, 240, 0.10);
+    --ink: #e8f1fb;
+    --ink-dim: #8ba3c0;
+    --ink-faint: #5f748f;
+    --accent: #4cc9f0;
+    --accent-2: #38bdf8;
+    --surface: rgba(30, 44, 72, 0.6);
+    --surface-hi: rgba(48, 68, 104, 0.85);
+    --danger: #ef4444;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #05070d;
+    color: var(--ink);
+    display: flex;
+    height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(120,160,210,0.18); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(120,160,210,0.32); }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, #0a1224 0%, #070c18 100%);
+    border-right: 1px solid rgba(120, 170, 220, 0.10);
+    padding: 18px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+    z-index: 10;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 2px 2px 6px;
+  }
+  .brand .logo {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    background: radial-gradient(circle at 30% 25%, #5fd3ff, #1668b8 70%);
+    box-shadow: 0 0 16px rgba(76,201,240,0.45), inset 0 0 8px rgba(255,255,255,0.25);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .brand .logo::after {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: 9px;
+    background:
+      radial-gradient(circle at 68% 62%, rgba(255,255,255,0.9) 0 1.5px, transparent 2px),
+      radial-gradient(circle at 44% 40%, rgba(255,255,255,0.6) 0 1px, transparent 1.5px);
+  }
+  .brand h1 { font-size: 0.98rem; font-weight: 700; letter-spacing: 0.2px; line-height: 1.15; }
+  .brand p { font-size: 0.66rem; color: var(--ink-faint); letter-spacing: 0.4px; text-transform: uppercase; margin-top: 2px; }
+
+  .panel-section {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    padding: 13px 13px 14px;
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    backdrop-filter: blur(6px);
+  }
+
+  h3 {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.3px;
+    color: var(--ink-dim);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  h3 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  .btn-group { display: flex; gap: 7px; flex-wrap: wrap; }
+
+  button {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid rgba(120,160,210,0.10);
+    padding: 8px 11px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+    font-weight: 500;
+    transition: background 0.16s, border-color 0.16s, transform 0.06s;
+    flex: 1;
+    white-space: nowrap;
+  }
+  button:hover { background: var(--surface-hi); border-color: rgba(120,180,230,0.28); }
+  button:active { transform: translateY(1px); }
+  button.active {
+    background: linear-gradient(180deg, #2b7fd4, #1e63b0);
+    border-color: rgba(120,200,255,0.5);
+    box-shadow: 0 0 14px rgba(56,189,248,0.35);
+    color: #fff;
+  }
+  button.danger { background: rgba(120, 32, 32, 0.5); border-color: rgba(240,90,90,0.25); }
+  button.danger:hover { background: rgba(150, 40, 40, 0.7); }
+  button.ghost { flex: 0 0 auto; padding: 6px 10px; font-size: 0.72rem; }
+
+  label {
+    font-size: 0.78rem;
+    color: var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  label .val { color: var(--accent); font-variant-numeric: tabular-nums; font-size: 0.74rem; min-width: 34px; text-align: right; }
+
+  input[type="color"] {
+    -webkit-appearance: none; appearance: none;
+    border: 1px solid rgba(150,190,230,0.25);
+    width: 40px; height: 24px;
+    border-radius: 5px;
+    cursor: pointer;
+    background: none;
+    padding: 0;
+  }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+  input[type="color"]::-webkit-color-swatch { border: none; border-radius: 3px; }
+
+  input[type="number"] {
+    width: 66px;
+    background: rgba(10,16,30,0.8);
+    border: 1px solid rgba(120,160,210,0.2);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 7px 8px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+  input[type="number"]:focus { outline: none; border-color: var(--accent); }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px;
+    background: rgba(120,160,210,0.22);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(76,201,240,0.6);
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%; border: none;
+    background: var(--accent); box-shadow: 0 0 8px rgba(76,201,240,0.6); cursor: pointer;
+  }
+  .slider-row { display: flex; flex-direction: column; gap: 5px; }
+
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+  .swatch {
+    width: 24px; height: 24px; border-radius: 6px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.1s;
+  }
+  .swatch:hover { transform: scale(1.12); }
+  .swatch.sel { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+
+  .spawn-row { display: flex; gap: 7px; align-items: center; }
+
+  .hint { font-size: 0.68rem; color: var(--ink-faint); line-height: 1.35; }
+
+  /* Collapsible */
+  .collapsible > h3 { cursor: pointer; justify-content: space-between; }
+  .collapsible > h3 .chev { transition: transform 0.2s; color: var(--ink-faint); }
+  .collapsible.closed > h3 .chev { transform: rotate(-90deg); }
+  .collapsible.closed .collapse-body { display: none; }
+
+  /* ---------- Canvas / Stage ---------- */
+  #stage {
+    flex: 1;
+    position: relative;
+    background: #02040a;
+    cursor: crosshair;
+    overflow: hidden;
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  #hud {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: rgba(8, 14, 28, 0.72);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(120,170,220,0.18);
+    padding: 11px 14px;
+    border-radius: 9px;
+    font-family: "SF Mono", "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.74rem;
+    pointer-events: none;
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 4px 16px;
+    min-width: 168px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  #hud .k { color: var(--ink-faint); letter-spacing: 0.3px; }
+  #hud .v { color: var(--accent); text-align: right; font-variant-numeric: tabular-nums; }
+  #hud .v.warn { color: #fbbf24; }
+  #hud .v.bad { color: #f87171; }
+  #hud.hidden { display: none; }
+  #hud .title {
+    grid-column: 1 / -1;
+    color: var(--ink-dim);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border-bottom: 1px solid rgba(120,170,220,0.14);
+    padding-bottom: 5px; margin-bottom: 2px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #hud .title .live { color: #34d399; font-size: 0.58rem; }
+
+  #stageHint {
+    position: absolute;
+    bottom: 14px; left: 14px;
+    background: rgba(8, 14, 28, 0.66);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(120,170,220,0.14);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    color: var(--ink-dim);
+    pointer-events: none;
+    max-width: 60%;
+    transition: opacity 0.4s;
+  }
+  #stageHint b { color: var(--accent); font-weight: 600; }
+
+  .toggle {
+    position: relative; width: 38px; height: 21px;
+    background: rgba(120,160,210,0.25);
+    border-radius: 12px; cursor: pointer;
+    transition: background 0.18s; flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent-2); box-shadow: 0 0 10px rgba(56,189,248,0.5); }
+  .toggle::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 17px; height: 17px; border-radius: 50%;
+    background: #fff; transition: transform 0.18s;
+  }
+  .toggle.on::after { transform: translateX(17px); }
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; }
+
+  .footer-note { font-size: 0.62rem; color: var(--ink-faint); text-align: center; padding-top: 2px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+  <div id="sidebar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>Aquarium Sandbox</h1>
+        <p>Boids &middot; Falling-Sand CA</p>
+      </div>
+    </div>
+
+    <!-- Simulation controls -->
+    <div class="panel-section">
+      <h3><span class="dot"></span>Simulation</h3>
+      <div class="btn-group">
+        <button id="btn-pause" onclick="UI.togglePause()">Pause</button>
+        <button onclick="UI.reset()">Reset</button>
+      </div>
+    </div>
+
+    <!-- Active tool -->
+    <div class="panel-section">
+      <h3><span class="dot"></span>Active Tool</h3>
+      <div class="btn-group">
+        <button id="tool-select" class="active" onclick="UI.setTool('select')">Select</button>
+        <button id="tool-sand" onclick="UI.setTool('sand')">Add</button>
+      </div>
+      <div class="btn-group">
+        <button id="tool-dig" onclick="UI.setTool('dig')">Dig</button>
+        <button id="tool-flatten" onclick="UI.setTool('flatten')">Flatten</button>
+      </div>
+      <div class="slider-row">
+        <label>Brush Size <span class="val" id="brush-val">4</span></label>
+        <input type="range" id="brushSize" min="1" max="14" value="4" oninput="UI.updateSliders()">
+      </div>
+    </div>
+
+    <!-- Population -->
+    <div class="panel-section">
+      <h3><span class="dot"></span>Spawn Population</h3>
+      <div class="btn-group">
+        <button onclick="UI.spawn(10)">+10</button>
+        <button onclick="UI.spawn(50)">+50</button>
+        <button onclick="UI.spawnRandom()">Random</button>
+      </div>
+      <div class="spawn-row">
+        <input type="number" id="spawnCount" value="100" min="1" max="4000">
+        <button onclick="UI.spawnCustom()">Spawn N</button>
+      </div>
+      <label>
+        Fish Color
+        <input type="color" id="spawnColor" value="#ff5964" oninput="UI.pickSpawnColor(this.value)">
+      </label>
+      <div class="swatches" id="swatches"></div>
+    </div>
+
+    <!-- Bulk removal -->
+    <div class="panel-section">
+      <h3><span class="dot"></span>Bulk Removal</h3>
+      <div class="btn-group" id="removeSwatches"></div>
+      <button class="danger" onclick="UI.clearAllFish()">Clear All Fish</button>
+      <p class="hint">Click a fish to remove it, or drag a box to remove a group. Use color chips above to cull by color.</p>
+    </div>
+
+    <!-- Environment -->
+    <div class="panel-section">
+      <h3><span class="dot"></span>Environment</h3>
+      <label>Water Tint <input type="color" id="waterColor" value="#0a2440" oninput="UI.updateColors()"></label>
+      <label>Sand / Gravel <input type="color" id="sandColor" value="#d4a35a" oninput="UI.updateColors()"></label>
+      <label>Light Rays <input type="color" id="lightColor" value="#57d5ff" oninput="UI.updateColors()"></label>
+    </div>
+
+    <!-- Boids tuning -->
+    <div class="panel-section collapsible closed" id="tuneSection">
+      <h3 onclick="UI.toggleCollapse('tuneSection')"><span style="display:flex;align-items:center;gap:7px"><span class="dot"></span>Flocking Tuning</span><span class="chev">&#9662;</span></h3>
+      <div class="collapse-body" style="display:flex;flex-direction:column;gap:11px;">
+        <div class="slider-row">
+          <label>Separation <span class="val" id="sep-val">1.6</span></label>
+          <input type="range" id="sepW" min="0" max="3" step="0.1" value="1.6" oninput="UI.updateSliders()">
+        </div>
+        <div class="slider-row">
+          <label>Alignment <span class="val" id="ali-val">1.0</span></label>
+          <input type="range" id="aliW" min="0" max="3" step="0.1" value="1.0" oninput="UI.updateSliders()">
+        </div>
+        <div class="slider-row">
+          <label>Cohesion <span class="val" id="coh-val">0.9</span></label>
+          <input type="range" id="cohW" min="0" max="3" step="0.1" value="0.9" oninput="UI.updateSliders()">
+        </div>
+        <div class="slider-row">
+          <label>Cursor Evasion <span class="val" id="eva-val">1.4</span></label>
+          <input type="range" id="evaW" min="0" max="3" step="0.1" value="1.4" oninput="UI.updateSliders()">
+        </div>
+        <div class="toggle-row">
+          <span>Show spatial grid</span>
+          <div class="toggle" id="tg-grid" onclick="UI.toggle('grid')"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="panel-section">
+      <h3><span class="dot"></span>Display</h3>
+      <div class="toggle-row">
+        <span>Telemetry HUD</span>
+        <div class="toggle on" id="tg-hud" onclick="UI.toggle('hud')"></div>
+      </div>
+      <div class="toggle-row">
+        <span>Light rays &amp; bubbles</span>
+        <div class="toggle on" id="tg-fx" onclick="UI.toggle('fx')"></div>
+      </div>
+    </div>
+
+    <p class="footer-note">Zero-dependency HTML5 Canvas &middot; typed-array object pools &middot; spatial-hash O(n) flocking</p>
+  </div>
+
+  <div id="stage">
+    <canvas id="simCanvas"></canvas>
+    <div id="hud">
+      <div class="title"><span>Telemetry</span><span class="live">&#9679; live</span></div>
+      <span class="k">FPS</span><span class="v" id="fps-val">0</span>
+      <span class="k">Frame</span><span class="v" id="frame-val">0.0 ms</span>
+      <span class="k">Fish</span><span class="v" id="fish-val">0</span>
+      <span class="k">Sand cells</span><span class="v" id="sand-val">0</span>
+      <span class="k">Active sand</span><span class="v" id="asand-val">0</span>
+      <span class="k">Grid checks</span><span class="v" id="checks-val">0</span>
+    </div>
+    <div id="stageHint">Drag on the water to <b>select &amp; delete</b> fish. Switch tools to sculpt the sand bed.</div>
+  </div>
+
+<script>
+"use strict";
+/* ============================================================================
+   Interactive Aquarium & Cellular Automata Sandbox
+   Zero-dependency. Three decoupled systems share flat typed-array state:
+     - Physics   : falling-sand cellular automata (Uint8Array grid)
+     - AI/Boids  : structure-of-arrays fish pool + spatial hash steering
+     - Renderer  : canvas draw pipeline (water, caustics, sand, fish, overlays)
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   0. Shared configuration & global stage state
+   ------------------------------------------------------------------------- */
+const CFG = {
+  CELL: 5,             // sand cell size in px
+  MAX_FISH: 4000,      // hard pool capacity
+  NEIGHBOR_R: 46,      // boid perception radius (px)
+  SEP_R: 24,           // separation radius (px)
+  MAX_SPEED: 2.6,
+  MIN_SPEED: 0.9,
+  MAX_FORCE: 0.09,
+  MARGIN: 60,          // soft boundary
+  MOUSE_EVADE_R: 110,
+};
+
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+
+let W = 0, H = 0;            // canvas pixel size
+let cols = 0, rows = 0;      // sand grid dims
+let paused = false;
+
+const state = {
+  tool: 'select',
+  brush: 4,
+  showGrid: false,
+  showHUD: true,
+  showFX: true,
+  weights: { sep: 1.6, ali: 1.0, coh: 0.9, eva: 1.4 },
+  colors: { water: '#0a2440', sand: '#d4a35a', light: '#57d5ff' },
+  spawnColor: '#ff5964',
+};
+
+/* ---------------------------------------------------------------------------
+   1. Color palette registry (keeps fish pool storing a 1-byte index)
+   ------------------------------------------------------------------------- */
+const Palette = (() => {
+  const hexes = [];     // hex string per index
+  const rgb = [];       // {r,g,b}
+  const lite = [];      // lightened hex for gradient highlight
+
+  function hexToRgb(h) {
+    h = h.replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
+  }
+  function lighten(c, amt) {
+    const f = (v) => Math.min(255, Math.round(v + (255 - v) * amt));
+    return `rgb(${f(c.r)},${f(c.g)},${f(c.b)})`;
+  }
+  function idFor(hex) {
+    hex = hex.toLowerCase();
+    let i = hexes.indexOf(hex);
+    if (i !== -1) return i;
+    const c = hexToRgb(hex);
+    hexes.push(hex); rgb.push(c); lite.push(lighten(c, 0.55));
+    return hexes.length - 1;
+  }
+  return { idFor, hexes, rgb, lite };
+})();
+
+/* ---------------------------------------------------------------------------
+   2. Fish pool — Structure of Arrays over typed buffers + free list
+   ------------------------------------------------------------------------- */
+const Pool = (() => {
+  const N = CFG.MAX_FISH;
+  const x  = new Float32Array(N);
+  const y  = new Float32Array(N);
+  const vx = new Float32Array(N);
+  const vy = new Float32Array(N);
+  const ph = new Float32Array(N);   // tail-wiggle phase
+  const wig = new Float32Array(N);  // wiggle speed
+  const active = new Uint8Array(N);
+  const pal = new Uint8Array(N);    // palette index
+
+  const free = new Int32Array(N);   // free-list stack of indices
+  let freeTop = 0;
+  let count = 0;
+
+  function reset() {
+    active.fill(0);
+    for (let i = 0; i < N; i++) free[i] = N - 1 - i; // stack top = index 0
+    freeTop = N;
+    count = 0;
+  }
+  reset();
+
+  function spawn(px, py, palId) {
+    if (freeTop === 0) return -1;
+    const i = free[--freeTop];
+    x[i] = px; y[i] = py;
+    const a = Math.random() * Math.PI * 2;
+    const s = CFG.MIN_SPEED + Math.random() * (CFG.MAX_SPEED - CFG.MIN_SPEED);
+    vx[i] = Math.cos(a) * s;
+    vy[i] = Math.sin(a) * s;
+    ph[i] = Math.random() * Math.PI * 2;
+    wig[i] = 0.22 + Math.random() * 0.12;
+    pal[i] = palId;
+    active[i] = 1;
+    count++;
+    return i;
+  }
+  function kill(i) {
+    if (!active[i]) return;
+    active[i] = 0;
+    free[freeTop++] = i;
+    count--;
+  }
+  return { N, x, y, vx, vy, ph, wig, active, pal,
+           spawn, kill, reset, get count() { return count; } };
+})();
+
+/* ---------------------------------------------------------------------------
+   3. Spatial hash grid — O(n) neighbour + marquee queries, reused buffers
+   ------------------------------------------------------------------------- */
+const Hash = (() => {
+  let cell = CFG.NEIGHBOR_R;
+  let gw = 0, gh = 0;
+  let heads = new Int32Array(0);   // first index in each bucket (-1 empty)
+  let next = new Int32Array(CFG.MAX_FISH); // linked-list next pointer
+  let lastChecks = 0;
+
+  function resize(w, h) {
+    gw = Math.max(1, Math.ceil(w / cell));
+    gh = Math.max(1, Math.ceil(h / cell));
+    heads = new Int32Array(gw * gh);
+  }
+  function cellOf(px, py) {
+    let cx = (px / cell) | 0, cy = (py / cell) | 0;
+    if (cx < 0) cx = 0; else if (cx >= gw) cx = gw - 1;
+    if (cy < 0) cy = 0; else if (cy >= gh) cy = gh - 1;
+    return cy * gw + cx;
+  }
+  function build() {
+    heads.fill(-1);
+    const { active, x, y } = Pool;
+    for (let i = 0; i < Pool.N; i++) {
+      if (!active[i]) continue;
+      const b = cellOf(x[i], y[i]);
+      next[i] = heads[b];
+      heads[b] = i;
+    }
+  }
+  // Visit neighbours in the 3x3 block around (px,py); cb(index)
+  function forNeighbors(px, py, cb) {
+    let cx = (px / cell) | 0, cy = (py / cell) | 0;
+    for (let oy = -1; oy <= 1; oy++) {
+      const ny = cy + oy;
+      if (ny < 0 || ny >= gh) continue;
+      for (let ox = -1; ox <= 1; ox++) {
+        const nx = cx + ox;
+        if (nx < 0 || nx >= gw) continue;
+        let i = heads[ny * gw + nx];
+        while (i !== -1) { lastChecks++; cb(i); i = next[i]; }
+      }
+    }
+  }
+  // Collect indices whose position is inside the rect
+  function queryRect(x0, y0, x1, y1, out) {
+    const cx0 = Math.max(0, (x0 / cell) | 0), cx1 = Math.min(gw - 1, (x1 / cell) | 0);
+    const cy0 = Math.max(0, (y0 / cell) | 0), cy1 = Math.min(gh - 1, (y1 / cell) | 0);
+    const { x, y } = Pool;
+    for (let gy = cy0; gy <= cy1; gy++) {
+      for (let gx = cx0; gx <= cx1; gx++) {
+        let i = heads[gy * gw + gx];
+        while (i !== -1) {
+          if (x[i] >= x0 && x[i] <= x1 && y[i] >= y0 && y[i] <= y1) out.push(i);
+          i = next[i];
+        }
+      }
+    }
+  }
+  function nearest(px, py, maxD) {
+    let best = -1, bestD = maxD * maxD;
+    forNeighborsRaw(px, py, (i) => {
+      const dx = Pool.x[i] - px, dy = Pool.y[i] - py;
+      const d = dx * dx + dy * dy;
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    return best;
+  }
+  function forNeighborsRaw(px, py, cb) {
+    let cx = (px / cell) | 0, cy = (py / cell) | 0;
+    for (let oy = -1; oy <= 1; oy++) {
+      const ny = cy + oy; if (ny < 0 || ny >= gh) continue;
+      for (let ox = -1; ox <= 1; ox++) {
+        const nx = cx + ox; if (nx < 0 || nx >= gw) continue;
+        let i = heads[ny * gw + nx];
+        while (i !== -1) { cb(i); i = next[i]; }
+      }
+    }
+  }
+  return {
+    resize, build, forNeighbors, queryRect, nearest,
+    get gw() { return gw; }, get gh() { return gh; }, get cell() { return cell; },
+    resetChecks() { lastChecks = 0; }, get checks() { return lastChecks; },
+  };
+})();
+
+/* ---------------------------------------------------------------------------
+   4. Sand cellular automata (physics system)
+   ------------------------------------------------------------------------- */
+const Sand = (() => {
+  let grid = new Uint8Array(0);
+  let staticCount = 0;   // total sand cells
+  let activeCount = 0;   // cells that moved this frame
+  let flip = 0;          // alternate column scan direction to reduce bias
+
+  function resize(newCols, newRows) {
+    const ng = new Uint8Array(newCols * newRows);
+    if (grid.length) {
+      for (let r = 0; r < Math.min(rows, newRows); r++)
+        for (let c = 0; c < Math.min(cols, newCols); c++)
+          ng[r * newCols + c] = grid[r * cols + c];
+    }
+    grid = ng;
+  }
+  function seedBed() {
+    const bed = Math.min(rows - 4, 16);
+    for (let r = rows - bed; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        grid[r * cols + c] = 1;
+    // a gentle dune so the surface isn't flat
+    for (let c = 0; c < cols; c++) {
+      const hump = Math.round(6 * Math.sin(c * 0.03) + 4 * Math.sin(c * 0.011 + 1.7));
+      for (let k = 0; k < hump; k++) {
+        const r = rows - bed - 1 - k;
+        if (r >= 0) grid[r * cols + c] = 1;
+      }
+    }
+  }
+  function step() {
+    let moved = 0, total = 0;
+    flip ^= 1;
+    for (let r = rows - 2; r >= 0; r--) {
+      const base = r * cols;
+      const bbelow = (r + 1) * cols;
+      const l2r = ((r + flip) & 1) === 0;
+      const cStart = l2r ? 0 : cols - 1;
+      const cEnd = l2r ? cols : -1;
+      const cStep = l2r ? 1 : -1;
+      for (let c = cStart; c !== cEnd; c += cStep) {
+        if (grid[base + c] !== 1) continue;
+        total++;
+        const below = bbelow + c;
+        if (grid[below] === 0) { grid[base + c] = 0; grid[below] = 1; moved++; continue; }
+        const dir = (((c + r) & 1) === 0) ? -1 : 1;
+        const a = c + dir, b = c - dir;
+        if (a >= 0 && a < cols && grid[bbelow + a] === 0 && grid[base + a] === 0) {
+          grid[base + c] = 0; grid[bbelow + a] = 1; moved++;
+        } else if (b >= 0 && b < cols && grid[bbelow + b] === 0 && grid[base + b] === 0) {
+          grid[base + c] = 0; grid[bbelow + b] = 1; moved++;
+        }
+      }
+    }
+    // count remaining cells on bottom row (skipped by loop)
+    const br = (rows - 1) * cols;
+    for (let c = 0; c < cols; c++) if (grid[br + c] === 1) total++;
+    staticCount = total;
+    activeCount = moved;
+  }
+  // O(1) density sample used by fish terrain steering
+  function solidAt(px, py) {
+    const c = (px / CFG.CELL) | 0, r = (py / CFG.CELL) | 0;
+    if (c < 0 || c >= cols || r < 0 || r >= rows) return 0;
+    return grid[r * cols + c];
+  }
+  function brush(px, py, radius, value) {
+    const cc = (px / CFG.CELL) | 0, cr = (py / CFG.CELL) | 0;
+    const r2 = radius * radius;
+    for (let r = cr - radius; r <= cr + radius; r++) {
+      if (r < 0 || r >= rows) continue;
+      for (let c = cc - radius; c <= cc + radius; c++) {
+        if (c < 0 || c >= cols) continue;
+        const dx = c - cc, dy = r - cr;
+        if (dx * dx + dy * dy <= r2) grid[r * cols + c] = value;
+      }
+    }
+  }
+  // Flatten: level the sand surface toward its local average height
+  function flatten(px, py, radius) {
+    const cc = (px / CFG.CELL) | 0;
+    const c0 = Math.max(0, cc - radius), c1 = Math.min(cols - 1, cc + radius);
+    let sum = 0, n = 0;
+    for (let c = c0; c <= c1; c++) {
+      let top = rows;
+      for (let r = 0; r < rows; r++) { if (grid[r * cols + c] === 1) { top = r; break; } }
+      sum += top; n++;
+    }
+    if (!n) return;
+    const target = Math.round(sum / n);
+    for (let c = c0; c <= c1; c++) {
+      for (let r = 0; r < rows; r++) {
+        const idx = r * cols + c;
+        if (r >= target) grid[idx] = 1; else if (grid[idx] === 1 && r < target) grid[idx] = 0;
+      }
+    }
+  }
+  return {
+    resize, seedBed, step, solidAt, brush, flatten,
+    get grid() { return grid; },
+    get staticCount() { return staticCount; },
+    get activeCount() { return activeCount; },
+  };
+})();
+
+/* ---------------------------------------------------------------------------
+   5. Boids AI (steering system) — reads Sand + Hash, mutates Pool velocities
+   ------------------------------------------------------------------------- */
+const Boids = (() => {
+  const mouse = { x: -9999, y: -9999, inside: false };
+
+  // scratch accumulators reused per-fish (no per-frame allocation)
+  let sepx, sepy, alix, aliy, cohx, cohy, cnt, self;
+  function accumulate(j) {
+    if (j === self) return;
+    const dx = Pool.x[self] - Pool.x[j];
+    const dy = Pool.y[self] - Pool.y[j];
+    const d2 = dx * dx + dy * dy;
+    if (d2 > CFG.NEIGHBOR_R * CFG.NEIGHBOR_R || d2 === 0) return;
+    const d = Math.sqrt(d2);
+    // separation weighted by inverse distance
+    if (d < CFG.SEP_R) { sepx += dx / d; sepy += dy / d; }
+    alix += Pool.vx[j]; aliy += Pool.vy[j];
+    cohx += Pool.x[j];  cohy += Pool.y[j];
+    cnt++;
+  }
+
+  function step() {
+    const { x, y, vx, vy, active } = Pool;
+    const W_ = state.weights;
+    for (let i = 0; i < Pool.N; i++) {
+      if (!active[i]) continue;
+      self = i;
+      sepx = sepy = alix = aliy = cohx = cohy = 0; cnt = 0;
+      Hash.forNeighbors(x[i], y[i], accumulate);
+
+      let ax = 0, ay = 0;
+      if (cnt > 0) {
+        ax += sepx * 0.09 * W_.sep;
+        ay += sepy * 0.09 * W_.sep;
+        ax += (alix / cnt) * 0.03 * W_.ali;
+        ay += (aliy / cnt) * 0.03 * W_.ali;
+        ax += ((cohx / cnt) - x[i]) * 0.0016 * W_.coh;
+        ay += ((cohy / cnt) - y[i]) * 0.0016 * W_.coh;
+      }
+
+      // Cursor evasion
+      if (mouse.inside) {
+        const dx = x[i] - mouse.x, dy = y[i] - mouse.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < CFG.MOUSE_EVADE_R * CFG.MOUSE_EVADE_R && d2 > 0.01) {
+          const d = Math.sqrt(d2);
+          const f = (1 - d / CFG.MOUSE_EVADE_R) * 0.9 * W_.eva;
+          ax += (dx / d) * f; ay += (dy / d) * f;
+        }
+      }
+
+      // Terrain steering: sample density ahead + local gradient (O(1) lookups)
+      const spd = Math.hypot(vx[i], vy[i]) || 1;
+      const nvx = vx[i] / spd, nvy = vy[i] / spd;
+      const look = 18;
+      if (Sand.solidAt(x[i] + nvx * look, y[i] + nvy * look)) {
+        // probe perpendicular offsets to find the freer side
+        const px = -nvy, py = nvx;
+        const leftBlocked  = Sand.solidAt(x[i] + (nvx * 10) + px * 12, y[i] + (nvy * 10) + py * 12);
+        const rightBlocked = Sand.solidAt(x[i] + (nvx * 10) - px * 12, y[i] + (nvy * 10) - py * 12);
+        let sx = px, sy = py;
+        if (leftBlocked && !rightBlocked) { sx = -px; sy = -py; }
+        ax += sx * 0.5; ay += sy * 0.5;
+        ax -= nvx * 0.35; ay -= nvy * 0.35; // brake into the wall
+      }
+      // hard push if currently embedded in sand
+      if (Sand.solidAt(x[i], y[i])) ay -= 0.6;
+
+      // Boundary steering (soft)
+      if (x[i] < CFG.MARGIN) ax += (CFG.MARGIN - x[i]) * 0.004;
+      else if (x[i] > W - CFG.MARGIN) ax -= (x[i] - (W - CFG.MARGIN)) * 0.004;
+      if (y[i] < CFG.MARGIN) ay += (CFG.MARGIN - y[i]) * 0.004;
+      else if (y[i] > H - CFG.MARGIN) ay -= (y[i] - (H - CFG.MARGIN)) * 0.004;
+
+      // clamp steering force
+      const am = Math.hypot(ax, ay);
+      if (am > CFG.MAX_FORCE) { ax = ax / am * CFG.MAX_FORCE; ay = ay / am * CFG.MAX_FORCE; }
+
+      vx[i] += ax; vy[i] += ay;
+
+      // clamp speed band
+      let s = Math.hypot(vx[i], vy[i]);
+      if (s > CFG.MAX_SPEED) { vx[i] = vx[i] / s * CFG.MAX_SPEED; vy[i] = vy[i] / s * CFG.MAX_SPEED; }
+      else if (s < CFG.MIN_SPEED && s > 0) { vx[i] = vx[i] / s * CFG.MIN_SPEED; vy[i] = vy[i] / s * CFG.MIN_SPEED; }
+
+      x[i] += vx[i]; y[i] += vy[i];
+
+      // hard clamp inside stage
+      if (x[i] < 4) { x[i] = 4; vx[i] = Math.abs(vx[i]); }
+      else if (x[i] > W - 4) { x[i] = W - 4; vx[i] = -Math.abs(vx[i]); }
+      if (y[i] < 4) { y[i] = 4; vy[i] = Math.abs(vy[i]); }
+      else if (y[i] > H - 4) { y[i] = H - 4; vy[i] = -Math.abs(vy[i]); }
+
+      Pool.ph[i] += Pool.wig[i];
+    }
+  }
+  return { step, mouse };
+})();
+
+/* ---------------------------------------------------------------------------
+   6. Renderer (visual pipeline)
+   ------------------------------------------------------------------------- */
+const Renderer = (() => {
+  let t = 0;
+  // rising bubbles (independent decorative particles)
+  const B = 60;
+  const bx = new Float32Array(B), by = new Float32Array(B),
+        br = new Float32Array(B), bs = new Float32Array(B);
+  function initBubbles() {
+    for (let i = 0; i < B; i++) {
+      bx[i] = Math.random() * (W || 800);
+      by[i] = Math.random() * (H || 600);
+      br[i] = 0.6 + Math.random() * 2.2;
+      bs[i] = 0.2 + Math.random() * 0.7;
+    }
+  }
+
+  function hexToRgbArr(h) {
+    h = h.replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+  }
+  function mix(a, b, tt) { return [a[0]+(b[0]-a[0])*tt, a[1]+(b[1]-a[1])*tt, a[2]+(b[2]-a[2])*tt]; }
+  function rgbStr(c, alpha) { return `rgba(${c[0]|0},${c[1]|0},${c[2]|0},${alpha})`; }
+
+  function drawWater() {
+    const top = hexToRgbArr(state.colors.water);
+    const deep = mix(top, [3, 6, 14], 0.72);
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, rgbStr(mix(top, [255,255,255], 0.10), 1));
+    g.addColorStop(0.5, rgbStr(top, 1));
+    g.addColorStop(1, rgbStr(deep, 1));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawCaustics() {
+    if (!state.showFX) return;
+    const light = hexToRgbArr(state.colors.light);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const rays = 7;
+    for (let i = 0; i < rays; i++) {
+      const phase = t * 0.00016 + i * 1.7;
+      const cx = (i + 0.5) / rays * W + Math.sin(phase) * 90;
+      const width = 90 + Math.sin(phase * 1.3 + i) * 40;
+      const sway = Math.sin(phase * 0.7) * 60;
+      const g = ctx.createLinearGradient(cx, 0, cx + sway, H);
+      const a = 0.05 + 0.03 * (0.5 + 0.5 * Math.sin(phase * 1.1));
+      g.addColorStop(0, rgbStr(light, a));
+      g.addColorStop(0.55, rgbStr(light, a * 0.35));
+      g.addColorStop(1, rgbStr(light, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(cx - width * 0.3, 0);
+      ctx.lineTo(cx + width * 0.3, 0);
+      ctx.lineTo(cx + sway + width * 0.7, H);
+      ctx.lineTo(cx + sway - width * 0.7, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawBubbles() {
+    if (!state.showFX) return;
+    ctx.save();
+    for (let i = 0; i < B; i++) {
+      by[i] -= bs[i];
+      bx[i] += Math.sin((t * 0.001) + i) * 0.25;
+      if (by[i] < -6) { by[i] = H + 6; bx[i] = Math.random() * W; }
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(180,225,255,${0.05 + br[i] * 0.03})`;
+      ctx.arc(bx[i], by[i], br[i], 0, 6.2832);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawSand() {
+    const grid = Sand.grid;
+    const base = hexToRgbArr(state.colors.sand);
+    const dark = mix(base, [0,0,0], 0.42);
+    const hi = mix(base, [255,255,255], 0.32);
+    const CELL = CFG.CELL;
+    // Pass 1: body with subtle vertical shading (batched per row band)
+    for (let r = 0; r < rows; r++) {
+      const shade = r / rows;           // deeper = darker
+      const col = mix(hi, dark, 0.25 + shade * 0.7);
+      let run = -1;
+      for (let c = 0; c <= cols; c++) {
+        const solid = c < cols && grid[r * cols + c] === 1;
+        if (solid && run === -1) run = c;
+        else if (!solid && run !== -1) {
+          ctx.fillStyle = rgbStr(col, 1);
+          ctx.fillRect(run * CELL, r * CELL, (c - run) * CELL, CELL);
+          run = -1;
+        }
+      }
+    }
+    // Pass 2: bright rim on the topmost surface cells
+    ctx.fillStyle = rgbStr(hi, 0.9);
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        if (grid[r * cols + c] === 1) {
+          ctx.fillRect(c * CELL, r * CELL, CELL, Math.max(1, CELL * 0.34));
+          break;
+        }
+      }
+    }
+  }
+
+  // Cached body gradients keyed by palette index (local coords, reused across
+  // all fish of a colour — avoids per-fish/per-frame gradient allocation).
+  const fishGrad = [];
+  function gradFor(id) {
+    if (fishGrad[id]) return fishGrad[id];
+    const g = ctx.createLinearGradient(0, -5, 0, 5);
+    g.addColorStop(0, Palette.lite[id]);
+    g.addColorStop(0.5, Palette.hexes[id]);
+    g.addColorStop(1, Palette.hexes[id]);
+    fishGrad[id] = g;
+    return g;
+  }
+
+  function drawFish() {
+    const { x, y, vx, vy, active, pal, ph } = Pool;
+    const n = Pool.count;
+    // Level of detail: full glow/eyes/dorsal at normal loads; lean at heavy loads.
+    const glow = state.showFX && n <= 700;
+    const detail = n <= 1000;
+
+    if (glow) ctx.shadowBlur = 7;
+    for (let i = 0; i < Pool.N; i++) {
+      if (!active[i]) continue;
+      let sp = Math.hypot(vx[i], vy[i]); if (sp === 0) sp = 1;
+      const cos = vx[i] / sp, sin = vy[i] / sp;      // rotation from heading (no atan2)
+      const wig = Math.sin(ph[i]) * (0.5 + sp * 0.25);
+      // setTransform = translate + rotate in one matrix (faster than translate/rotate)
+      ctx.setTransform(cos, sin, -sin, cos, x[i], y[i]);
+
+      const body = Palette.hexes[pal[i]];
+
+      if (glow) ctx.shadowColor = body;
+      ctx.fillStyle = gradFor(pal[i]);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 8.5, 4.2, 0, 0, 6.2832);
+      ctx.fill();
+      if (glow) ctx.shadowBlur = 0;
+
+      // tail (wiggles)
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(-6, 0);
+      ctx.quadraticCurveTo(-11, wig * 3, -13, -4 + wig * 4);
+      ctx.lineTo(-13, 4 + wig * 4);
+      ctx.quadraticCurveTo(-11, wig * 3, -6, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      if (detail) {
+        const light = Palette.lite[pal[i]];
+        ctx.fillStyle = light;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.ellipse(1, -3, 3.4, 1.1, 0, 0, 6.2832);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#0a0f1a';
+        ctx.beginPath();
+        ctx.arc(5, -1, 1.0, 0, 6.2832);
+        ctx.fill();
+      }
+      if (glow) ctx.shadowBlur = 7;
+    }
+    if (glow) ctx.shadowBlur = 0;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  function drawGridOverlay() {
+    if (!state.showGrid) return;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(76,201,240,0.10)';
+    ctx.lineWidth = 1;
+    const cell = Hash.cell;
+    ctx.beginPath();
+    for (let gx = 0; gx <= W; gx += cell) { ctx.moveTo(gx, 0); ctx.lineTo(gx, H); }
+    for (let gy = 0; gy <= H; gy += cell) { ctx.moveTo(0, gy); ctx.lineTo(W, gy); }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawVignette() {
+    const g = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.75);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function frame(dt) {
+    t += dt;
+    drawWater();
+    drawCaustics();
+    drawSand();
+    drawFish();
+    drawBubbles();
+    drawVignette();
+    drawGridOverlay();
+    Input.drawMarquee();
+    Input.drawBrushCursor();
+  }
+  return { frame, initBubbles };
+})();
+
+/* ---------------------------------------------------------------------------
+   7. Input handling (mouse tools, marquee, terrain sculpting)
+   ------------------------------------------------------------------------- */
+const Input = (() => {
+  let down = false;
+  const start = { x: 0, y: 0 };
+  const cur = { x: 0, y: 0 };
+  let moved = false;
+
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) };
+  }
+
+  canvas.addEventListener('mousedown', (e) => {
+    down = true; moved = false;
+    const p = pos(e); start.x = p.x; start.y = p.y; cur.x = p.x; cur.y = p.y;
+    applyTerrain();
+  });
+  window.addEventListener('mousemove', (e) => {
+    const p = pos(e); cur.x = p.x; cur.y = p.y;
+    Boids.mouse.x = p.x; Boids.mouse.y = p.y;
+    const r = canvas.getBoundingClientRect();
+    Boids.mouse.inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (down) { if (Math.hypot(cur.x - start.x, cur.y - start.y) > 3) moved = true; applyTerrain(); }
+  });
+  window.addEventListener('mouseup', () => {
+    if (down && state.tool === 'select') resolveSelection();
+    down = false;
+  });
+  canvas.addEventListener('mouseleave', () => { Boids.mouse.inside = false; });
+
+  function applyTerrain() {
+    if (!down) return;
+    if (state.tool === 'sand')      Sand.brush(cur.x, cur.y, state.brush, 1);
+    else if (state.tool === 'dig')  Sand.brush(cur.x, cur.y, state.brush + 1, 0);
+    else if (state.tool === 'flatten') Sand.flatten(cur.x, cur.y, state.brush + 2);
+  }
+
+  function resolveSelection() {
+    const x0 = Math.min(start.x, cur.x), x1 = Math.max(start.x, cur.x);
+    const y0 = Math.min(start.y, cur.y), y1 = Math.max(start.y, cur.y);
+    if (!moved || (x1 - x0 < 5 && y1 - y0 < 5)) {
+      // single click → remove nearest fish (uses hash)
+      const i = Hash.nearest(cur.x, cur.y, 16);
+      if (i !== -1) Pool.kill(i);
+    } else {
+      const hits = [];
+      Hash.queryRect(x0, y0, x1, y1, hits);
+      for (const i of hits) Pool.kill(i);
+    }
+  }
+
+  function drawMarquee() {
+    if (!down || state.tool !== 'select' || !moved) return;
+    const x = Math.min(start.x, cur.x), y = Math.min(start.y, cur.y);
+    const w = Math.abs(cur.x - start.x), h = Math.abs(cur.y - start.y);
+    ctx.save();
+    ctx.fillStyle = 'rgba(56,189,248,0.12)';
+    ctx.strokeStyle = 'rgba(120,210,255,0.9)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 3]);
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+    ctx.restore();
+  }
+
+  function drawBrushCursor() {
+    if (state.tool === 'select') return;
+    const rad = (state.tool === 'dig' ? state.brush + 1 : state.tool === 'flatten' ? state.brush + 2 : state.brush) * CFG.CELL;
+    ctx.save();
+    ctx.strokeStyle = state.tool === 'dig' ? 'rgba(248,113,113,0.8)' : 'rgba(120,220,180,0.85)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cur.x, cur.y, rad, 0, 6.2832);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  return { drawMarquee, drawBrushCursor };
+})();
+
+/* ---------------------------------------------------------------------------
+   8. Engine loop — ties physics + AI + render, tracks telemetry
+   ------------------------------------------------------------------------- */
+const Engine = (() => {
+  let last = performance.now();
+  let fpsLast = last, frames = 0, fps = 0;
+  let frameMs = 0;
+
+  const el = {
+    fps: document.getElementById('fps-val'),
+    frame: document.getElementById('frame-val'),
+    fish: document.getElementById('fish-val'),
+    sand: document.getElementById('sand-val'),
+    asand: document.getElementById('asand-val'),
+    checks: document.getElementById('checks-val'),
+  };
+
+  function loop(now) {
+    const dt = now - last; last = now;
+    const t0 = performance.now();
+
+    if (!paused) {
+      Hash.build();
+      Hash.resetChecks();
+      Sand.step();
+      Boids.step();
+    }
+    Renderer.frame(paused ? 0 : dt);
+
+    frameMs = frameMs * 0.9 + (performance.now() - t0) * 0.1;
+
+    frames++;
+    if (now - fpsLast >= 500) {
+      fps = Math.round(frames * 1000 / (now - fpsLast));
+      frames = 0; fpsLast = now;
+      updateHUD();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function updateHUD() {
+    if (!state.showHUD) return;
+    el.fps.textContent = fps;
+    el.fps.className = 'v' + (fps < 30 ? ' bad' : fps < 50 ? ' warn' : '');
+    el.frame.textContent = frameMs.toFixed(1) + ' ms';
+    el.frame.className = 'v' + (frameMs > 20 ? ' bad' : frameMs > 12 ? ' warn' : '');
+    el.fish.textContent = Pool.count;
+    el.sand.textContent = Sand.staticCount.toLocaleString();
+    el.asand.textContent = Sand.activeCount.toLocaleString();
+    el.checks.textContent = Hash.checks.toLocaleString();
+  }
+
+  function start() { requestAnimationFrame(loop); }
+  return { start };
+})();
+
+/* ---------------------------------------------------------------------------
+   9. UI controller (button/slider bindings)
+   ------------------------------------------------------------------------- */
+const UI = (() => {
+  const SWATCHES = ['#ff5964', '#57d5ff', '#5dffab', '#ffd166', '#c792ff', '#ff9e64'];
+  const REMOVE = [
+    { hex: '#ff5964', label: 'Red' },
+    { hex: '#57d5ff', label: 'Blue' },
+    { hex: '#5dffab', label: 'Green' },
+    { hex: '#ffd166', label: 'Gold' },
+  ];
+
+  function buildSwatches() {
+    const sw = document.getElementById('swatches');
+    sw.innerHTML = '';
+    SWATCHES.forEach((hex) => {
+      const d = document.createElement('div');
+      d.className = 'swatch' + (hex === state.spawnColor ? ' sel' : '');
+      d.style.background = hex;
+      d.title = hex;
+      d.onclick = () => pickSpawnColor(hex, true);
+      sw.appendChild(d);
+    });
+    const rm = document.getElementById('removeSwatches');
+    rm.innerHTML = '';
+    REMOVE.forEach((r) => {
+      const b = document.createElement('button');
+      b.textContent = r.label;
+      b.style.borderLeft = `3px solid ${r.hex}`;
+      b.onclick = () => deleteByColor(r.hex);
+      rm.appendChild(b);
+    });
+  }
+
+  function pickSpawnColor(hex, syncInput) {
+    state.spawnColor = hex.toLowerCase();
+    if (syncInput) document.getElementById('spawnColor').value = hex;
+    document.querySelectorAll('#swatches .swatch').forEach((d) => {
+      d.classList.toggle('sel', d.title.toLowerCase() === state.spawnColor);
+    });
+  }
+
+  function spawn(n) {
+    const id = Palette.idFor(state.spawnColor);
+    for (let k = 0; k < n; k++) {
+      Pool.spawn(
+        40 + Math.random() * (W - 80),
+        40 + Math.random() * (H * 0.55),
+        id
+      );
+    }
+    hideHint();
+  }
+  function spawnCustom() {
+    let n = parseInt(document.getElementById('spawnCount').value, 10) || 0;
+    n = Math.max(1, Math.min(4000, n));
+    spawn(n);
+  }
+  function spawnRandom() {
+    const n = 15 + Math.floor(Math.random() * 60);
+    const hex = SWATCHES[Math.floor(Math.random() * SWATCHES.length)];
+    pickSpawnColor(hex, true);
+    spawn(n);
+  }
+
+  function deleteByColor(hex) {
+    const target = hex.toLowerCase();
+    const { active, pal } = Pool;
+    for (let i = 0; i < Pool.N; i++) {
+      if (active[i] && Palette.hexes[pal[i]] === target) Pool.kill(i);
+    }
+  }
+  function clearAllFish() {
+    const { active } = Pool;
+    for (let i = 0; i < Pool.N; i++) if (active[i]) Pool.kill(i);
+  }
+
+  function setTool(tool) {
+    state.tool = tool;
+    ['select', 'sand', 'dig', 'flatten'].forEach((t) => {
+      document.getElementById('tool-' + t).classList.toggle('active', t === tool);
+    });
+    document.getElementById('stage').style.cursor = tool === 'select' ? 'crosshair' : 'none';
+  }
+
+  function updateSliders() {
+    state.brush = +document.getElementById('brushSize').value;
+    state.weights.sep = +document.getElementById('sepW').value;
+    state.weights.ali = +document.getElementById('aliW').value;
+    state.weights.coh = +document.getElementById('cohW').value;
+    state.weights.eva = +document.getElementById('evaW').value;
+    document.getElementById('brush-val').textContent = state.brush;
+    document.getElementById('sep-val').textContent = state.weights.sep.toFixed(1);
+    document.getElementById('ali-val').textContent = state.weights.ali.toFixed(1);
+    document.getElementById('coh-val').textContent = state.weights.coh.toFixed(1);
+    document.getElementById('eva-val').textContent = state.weights.eva.toFixed(1);
+  }
+
+  function updateColors() {
+    state.colors.water = document.getElementById('waterColor').value;
+    state.colors.sand = document.getElementById('sandColor').value;
+    state.colors.light = document.getElementById('lightColor').value;
+  }
+
+  function toggle(which) {
+    if (which === 'grid') { state.showGrid = !state.showGrid; document.getElementById('tg-grid').classList.toggle('on', state.showGrid); }
+    if (which === 'hud')  { state.showHUD = !state.showHUD; document.getElementById('tg-hud').classList.toggle('on', state.showHUD); document.getElementById('hud').classList.toggle('hidden', !state.showHUD); }
+    if (which === 'fx')   { state.showFX = !state.showFX; document.getElementById('tg-fx').classList.toggle('on', state.showFX); }
+  }
+
+  function togglePause() {
+    paused = !paused;
+    document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+    document.getElementById('btn-pause').classList.toggle('active', paused);
+  }
+
+  function reset() {
+    Pool.reset();
+    Sand.resize(cols, rows); // clears
+    Sand.seedBed();
+    spawn(60);
+  }
+
+  function toggleCollapse(id) {
+    document.getElementById(id).classList.toggle('closed');
+  }
+
+  function hideHint() {
+    const h = document.getElementById('stageHint');
+    if (h) { h.style.opacity = '0'; setTimeout(() => h.remove(), 500); }
+  }
+
+  return {
+    buildSwatches, pickSpawnColor, spawn, spawnCustom, spawnRandom,
+    deleteByColor, clearAllFish, setTool, updateSliders, updateColors,
+    toggle, togglePause, reset, toggleCollapse,
+  };
+})();
+
+/* ---------------------------------------------------------------------------
+   10. Bootstrap
+   ------------------------------------------------------------------------- */
+function resize() {
+  const stage = document.getElementById('stage');
+  W = canvas.width = stage.clientWidth;
+  H = canvas.height = stage.clientHeight;
+  cols = Math.floor(W / CFG.CELL);
+  rows = Math.floor(H / CFG.CELL);
+  Sand.resize(cols, rows);
+  Hash.resize(W, H);
+}
+
+window.addEventListener('resize', () => { resize(); });
+
+(function boot() {
+  resize();
+  Sand.seedBed();
+  Renderer.initBubbles();
+  UI.buildSwatches();
+  UI.updateSliders();
+  UI.updateColors();
+  UI.spawn(45);
+  Engine.start();
+})();
+</script>
+</body>
+</html>
