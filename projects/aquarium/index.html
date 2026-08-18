@@ -24,7 +24,8 @@
     <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
     <nav class="navlinks" aria-label="Primary">
       <a href="/#work">Work</a>
-      <a href="/#about" class="hide-sm">About</a>
+      <a href="/#path" class="hide-sm">Path</a>
+      <a href="/#about">About</a>
       <a href="/#contact">Contact</a>
       <a href="https://github.com/AnthonyEllisDev">GitHub</a>
     </nav>
@@ -42,7 +43,7 @@
     </p>
     <div class="cta-row">
       <a class="btn btn-primary" href="/demos/aquarium.html">Launch demo <span class="arrow" aria-hidden="true">→</span></a>
-      <a class="btn" href="https://github.com/AnthonyEllisDev">Source on GitHub</a>
+      <a class="btn" href="https://github.com/AnthonyEllisDev/portfolio/blob/main/demos/aquarium.html">View source</a>
     </div>
   </div>
 
@@ -63,16 +64,34 @@
 
   <article class="case">
 
-    <h2>Why I built it</h2>
+    <h2>Where it came from</h2>
     <p>
-      This started as a performance exercise. Boids done the obvious way are O(n²), because every
-      fish asks every other fish where it is, and they fall over somewhere around a few hundred
-      agents. I wanted to know exactly what has to change to run thousands instead, and I wanted the
-      answer visible on screen rather than in a paragraph like this one. So the whole thing ships
-      with a telemetry panel: frame time, fish count, how much sand is currently moving, and the
-      number of neighbor checks the grid actually performed this frame. Turn the fish count up and
-      watch which number grows.
+      There was a Flash aquarium game I used to play, the kind where you feed fish and watch them
+      swim, and I wanted something like it to fidget with at work. A virtual snow globe. Around the
+      same time I'd watched Sebastian Lague's Coding Adventures episode on boids and had been
+      looking for an excuse to build them, so the two ideas met: flocking fish, over sand physics
+      you can reach into.
     </p>
+    <p>
+      It turned into a performance exercise almost immediately. Boids done the obvious way are
+      O(n²), because every fish asks every other fish where it is, and they fall over somewhere
+      around a few hundred agents. I wanted to know exactly what has to change to run thousands
+      instead, and I wanted the answer visible on screen rather than in a paragraph like this one.
+      So it ships with a telemetry panel: frame time, fish count, how much sand is currently moving,
+      and the number of neighbor checks the grid actually performed this frame. Turn the fish count
+      up and watch which number grows.
+    </p>
+
+    <div class="thenandnow">
+      <figure>
+        <img src="/assets/img/aquarium-old.jpg" alt="An early prototype: twenty-five red fish drifting over a flat band of sand." width="1000" height="625" loading="lazy">
+        <figcaption><span class="tag">First version</span>Twenty-five fish, one color, a flat sand floor and no spatial structure underneath.</figcaption>
+      </figure>
+      <figure>
+        <img src="/assets/img/aquarium.jpg" alt="The current version: hundreds of fish in five colors over sculpted dunes lit by light rays." width="1200" height="750" loading="lazy">
+        <figcaption><span class="tag">Now</span>Up to four thousand fish, a spatial hash, a sand bed you can dig, and a readout proving the work being skipped.</figcaption>
+      </figure>
+    </div>
 
     <h2>Three systems over one pile of arrays</h2>
     <p>
@@ -124,7 +143,7 @@
       it's three grid lookups per fish: one probe ahead along the heading, and two off to the sides
       to work out which way is clearer. The fish steers toward the open side and brakes into the
       wall. Anything that ends up buried gets a hard shove upward, so burying the whole flock with
-      the Add brush is recoverable rather than fatal, which I know because I did it repeatedly.
+      the Add brush is recoverable rather than fatal.
     </p>
 
     <div class="notecard">
@@ -140,6 +159,14 @@
       <li>Detail drops by population. Past 700 fish the glow goes; past 1,000 the eyes and the dorsal highlight go. The frame rate degrades by losing decoration rather than by turning into a slideshow.</li>
       <li>Light rays and caustics are drawn with <code>lighter</code> compositing over a vertical gradient. Cheap, and it sells the depth better than anything per-pixel would have.</li>
     </ul>
+
+    <div class="tryit">
+      <h4>Try this</h4>
+      <p>Spawn a few hundred fish, then use the sand brush to wall off the side of the tank they're
+      heading for. Watching a flock hit a wall that didn't exist a second ago is the whole reason
+      the terrain probes had to be cheap. Then set separation to zero and watch the flock collapse
+      into a single point.</p>
+    </div>
 
     <h2>What I'd do next</h2>
     <ul>

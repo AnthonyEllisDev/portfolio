@@ -24,7 +24,8 @@
     <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
     <nav class="navlinks" aria-label="Primary">
       <a href="/#work">Work</a>
-      <a href="/#about" class="hide-sm">About</a>
+      <a href="/#path" class="hide-sm">Path</a>
+      <a href="/#about">About</a>
       <a href="/#contact">Contact</a>
       <a href="https://github.com/AnthonyEllisDev">GitHub</a>
     </nav>
@@ -42,7 +43,7 @@
     </p>
     <div class="cta-row">
       <a class="btn btn-primary" href="/demos/galaxy.html">Launch demo <span class="arrow" aria-hidden="true">→</span></a>
-      <a class="btn" href="https://github.com/AnthonyEllisDev">Source on GitHub</a>
+      <a class="btn" href="https://github.com/AnthonyEllisDev/portfolio/blob/main/demos/galaxy.html">View source</a>
     </div>
   </div>
 
@@ -62,6 +63,14 @@
   </dl>
 
   <article class="case">
+
+    <h2>Why I built it</h2>
+    <p>
+      I like space, and I wanted something on this site that would look like something the
+      moment it loaded. This is one of three browser demos I put together over about a month
+      of evenings in mid-2026, which is why the write-up talks more about decisions than
+      about a long development history. The decisions are still the interesting part.
+    </p>
 
     <h2>Why nothing is saved</h2>
     <p>
@@ -161,28 +170,51 @@ src/app.js                                   <b>state, navigation, URL hash</b><
       <li>Galaxy generation, about 120 ms, off the main thread in the worker</li>
       <li>Spatial index 4 ms, faction Voronoi 20 ms, sector detail 2 ms</li>
       <li>Star system build 0.3 ms, star pick 2 ms</li>
-      <li>A 512² planet texture bake takes 300 ms behind a loading indicator. It's still on the main thread, and it's the next thing I want to move</li>
+      <li>The planet texture bake, 512×256, takes a few hundred milliseconds behind a loading indicator. It's still on the main thread and it's the next thing I want to move</li>
       <li>One draw call for the galaxy, holding 60 fps</li>
     </ul>
 
     <h2>How I know it isn't quietly broken</h2>
     <p>
-      <code>node test/verify.mjs</code> drives headless Chromium through the whole thing. It checks
-      that the console is clean on boot, that the same seed produces a bit-identical star buffer
-      across runs, that a different seed doesn't, and that the worker path matches the main thread
-      path byte for byte. Then it walks galaxy to system to planet to surface using real mouse
-      events, tries all five morphologies, and restores a deep link. It also reads the framebuffer
-      back for each view, so a render that silently goes black fails the run instead of shipping.
+      <code>npm run verify</code> drives the shipped file through headless Chromium and runs
+      seventeen checks. The two that matter: the same seed has to produce a
+      <strong>bit-identical</strong> star buffer across runs while a different seed doesn't,
+      and the Web Worker path has to match the main-thread path byte for byte. It also
+      confirms all five morphologies generate and differ, reads pixels back off the canvas so
+      a silently black render fails instead of shipping, and checks that a URL hash restores
+      the seed, morphology and star count it encodes.
+    </p>
+<pre>determinism
+  pass  same seed produces a bit-identical position buffer
+  pass  a different seed produces a different galaxy
+worker
+  pass  the worker actually started
+  pass  <b>worker output matches the main thread bit for bit</b>
+
+17 passed, 0 failed</pre>
+    <p>
+      The determinism check isn't a nicety. It's the property the whole architecture rests
+      on, since nothing is stored. If generation stopped being reproducible, the URL would
+      quietly stop working as a save file and the cache could no longer evict safely. The
+      suite is <a href="https://github.com/AnthonyEllisDev/portfolio/blob/main/test/verify.mjs">in the repo</a>.
     </p>
 
-    <h2>Five bugs that taught me something</h2>
+    <h2>Five bugs worth knowing about</h2>
     <ol>
-      <li>A race I built myself. <code>location.replace()</code> fires <code>hashchange</code> on a later task, so the <code>setTimeout(0)</code> guard I'd written lost the race and every navigation regenerated the entire galaxy. Comparing the written hash by value fixed it. Trying to out-time the event loop never works.</li>
-      <li>Frame-delta clamping ate the slow frames. Genuinely slow frames were being reset to 16 ms, so camera tweens never arrived at their targets on software renderers. Now anything over a second means the tab came back and gets ignored, and anything over 100 ms gets capped.</li>
+      <li>A navigation race. <code>location.replace()</code> fires <code>hashchange</code> on a later task, so a <code>setTimeout(0)</code> guard loses the race and every navigation regenerates the entire galaxy. Fixed by comparing the written hash by value, because trying to out-time the event loop never works.</li>
+      <li>Frame-delta clamping ate the slow frames. Genuinely slow frames were being reset to 16 ms, so camera tweens never arrived at their targets on software renderers. Now anything over a second is treated as the tab coming back and ignored, and anything over 100 ms is capped.</li>
       <li>A cache that only filled by accident. After a regeneration the sector cache sat empty until the camera happened to cross a sector boundary. It re-streams explicitly now.</li>
-      <li>A hole in the classifier. A temperate world with 45% surface water came out classed as rocky and rendered bone dry. Wet worlds with unbreathable air needed a class of their own.</li>
+      <li>A hole in the classifier. A temperate world with 45% surface water came out classed as rocky and rendered bone dry, because wet worlds with unbreathable air had nowhere to go. They have their own class now, and the comment explaining why is still next to it in the code.</li>
       <li>A scoring bug that flattered bad planets. Habitability was coming out at 67% for a dry world that happened to have breathable air. Water is a gate now, not a bonus.</li>
     </ol>
+
+    <div class="tryit">
+      <h4>Try this</h4>
+      <p>Set the star count high, then pull the camera back and watch the brightness. That's
+      the sub-pixel dimming doing its job. Then copy the URL, paste it into another browser,
+      and you'll land on the same galaxy, because the address bar is the only thing that was
+      ever saved.</p>
+    </div>
 
     <h2>What I'd do next</h2>
     <ul>
@@ -198,7 +230,7 @@ src/app.js                                   <b>state, navigation, URL hash</b><
     </div>
 
     <nav class="pager">
-      <span></span>
+      <a href="/projects/space-game/">← Space Game</a>
       <a href="/projects/arterial/">Next: Arterial, city traffic simulator →</a>
     </nav>
   </article>

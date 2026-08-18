@@ -59,7 +59,7 @@ button:focus-visible {
 
 ::selection { background: rgba(77, 163, 255, 0.3); }
 
-.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+.wrap { max-width: var(--maxw); margin: 0 auto; padding-left: 24px; padding-right: 24px; }
 
 .skip {
   position: absolute; left: -9999px;
@@ -357,3 +357,260 @@ footer.site a:hover { color: var(--accent); }
   .card:hover { transform: none; }
   .card:hover .shot img { transform: none; }
 }
+
+/* ==========================================================================
+   Timeline — two tracks, work above the spine and everything self-taught
+   below it. Horizontal and scrollable on desktop, vertical on phones.
+   ========================================================================== */
+
+.rail-wrap {
+  position: relative;
+  margin: 0 -24px;                 /* bleed past .wrap padding */
+  padding: 0 24px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.rail-wrap::-webkit-scrollbar { height: 8px; }
+.rail-wrap::-webkit-scrollbar-track { background: transparent; }
+.rail-wrap::-webkit-scrollbar-thumb { background: var(--line-hi); border-radius: 4px; }
+
+.rail {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 6px 0 14px;
+  width: max-content;
+}
+/* the spine itself */
+.rail::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line-hi) 6%, var(--line-hi) 94%, transparent);
+}
+
+.moment {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr 44px 1fr;
+  width: 268px;
+  flex: 0 0 268px;
+  padding: 0 9px;
+}
+
+.moment .node {
+  grid-row: 2;
+  align-self: center;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  z-index: 2;
+}
+.moment .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--line-hi);
+}
+.moment.is-work .dot { border-color: var(--accent); box-shadow: 0 0 10px rgba(77,163,255,0.5); }
+.moment.is-self .dot { border-color: var(--good); box-shadow: 0 0 10px rgba(61,220,151,0.45); }
+.moment.is-both .dot {
+  width: 12px; height: 12px;
+  background: var(--accent);
+  border-color: var(--accent-2);
+  box-shadow: 0 0 16px rgba(106,213,255,0.75);
+}
+.moment .year {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: var(--faint);
+  white-space: nowrap;
+  background: var(--bg);
+  padding: 0 6px;
+}
+
+.moment .card-t, .moment .card-b {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 11px 13px 12px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--dim);
+}
+.moment .card-t { grid-row: 1; align-self: end; margin-bottom: 10px; border-top: 2px solid var(--accent); }
+.moment .card-b { grid-row: 3; align-self: start; margin-top: 10px; border-bottom: 2px solid var(--good); }
+.moment h3 {
+  margin: 0 0 4px;
+  font-size: 0.92rem;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.moment .org {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+  display: block;
+  margin-bottom: 5px;
+}
+.moment p { margin: 0; }
+
+.rail-legend {
+  display: flex; gap: 20px; flex-wrap: wrap;
+  font-size: 0.78rem; color: var(--faint);
+  margin: 2px 0 18px;
+}
+.rail-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.rail-legend i {
+  width: 18px; height: 2px; border-radius: 2px; display: inline-block;
+}
+.rail-legend .w i { background: var(--accent); }
+.rail-legend .s i { background: var(--good); }
+
+.rail-hint {
+  font-size: 0.76rem; color: var(--faint);
+  margin: 10px 0 0;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ------------------------------------------------------------ about + photo */
+.about-grid {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 30px;
+  align-items: start;
+}
+.portrait {
+  border-radius: 14px;
+  border: 1px solid var(--line-hi);
+  overflow: hidden;
+  background: var(--panel);
+}
+.portrait img { width: 100%; display: block; }
+
+/* --------------------------------------------------------- before and after */
+.thenandnow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 28px 0 6px;
+}
+.thenandnow figure { margin: 0; }
+.thenandnow img {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #05070c;
+}
+.thenandnow figcaption {
+  font-size: 0.78rem;
+  color: var(--faint);
+  margin-top: 8px;
+}
+.thenandnow .tag {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  display: block;
+  margin-bottom: 3px;
+}
+
+/* ------------------------------------------------------------- pull quote */
+.pullquote {
+  border-left: 3px solid var(--good);
+  padding: 6px 0 6px 20px;
+  margin: 30px 0;
+  font-size: 1.12rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+.pullquote span {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--faint);
+  margin-top: 8px;
+}
+
+/* ------------------------------------------------------------- try this box */
+.tryit {
+  border: 1px dashed var(--line-hi);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 26px 0;
+  background: rgba(19, 28, 43, 0.5);
+}
+.tryit h4 {
+  margin: 0 0 6px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--good);
+}
+.tryit p { margin: 0; color: var(--dim); font-size: 0.94rem; }
+
+/* --------------------------------------------------------------- wip badge */
+.badge-wip {
+  position: absolute; top: 12px; left: 12px;
+  font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(7, 12, 20, 0.82);
+  border: 1px solid var(--line-hi);
+  color: #fbbf24;
+  padding: 4px 9px; border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
+
+@media (max-width: 760px) {
+  /* the rail becomes a vertical timeline */
+  .rail-wrap { overflow-x: visible; margin: 0; padding: 0; }
+  .rail { flex-direction: column; width: 100%; }
+  .rail::before { left: 7px; right: auto; top: 0; bottom: 0; width: 1px; height: auto; background: var(--line); }
+  .moment {
+    grid-template-rows: auto auto auto;
+    grid-template-columns: 1fr;
+    width: 100%; flex: 1 1 auto;
+    padding: 0 0 0 30px;
+    margin-bottom: 18px;
+  }
+  .moment .node {
+    grid-row: 1;
+    flex-direction: row;
+    justify-self: start;
+    margin-left: -30px;
+    gap: 9px;
+  }
+  .moment .year { background: transparent; padding: 0; }
+  .moment .card-t { grid-row: 2; margin: 6px 0 0; }
+  .moment .card-b { grid-row: 3; margin: 10px 0 0; }
+  .about-grid { grid-template-columns: 1fr; gap: 20px; }
+  .portrait { max-width: 170px; }
+  .thenandnow { grid-template-columns: 1fr; }
+}
+
+/* three-up variant for the browser demos */
+.projects.trio { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.projects.trio .card .body { padding: 16px 16px 18px; gap: 10px; }
+.projects.trio .card h3 { font-size: 1.06rem; }
+.projects.trio .card p.blurb { font-size: 0.9rem; }
+.subhead {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  margin: 42px 0 6px;
+}
+.subhead h3 {
+  margin: 0; font-size: 0.94rem; font-family: var(--mono); font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim);
+}
+.subhead .note { font-size: 0.84rem; color: var(--faint); }
+@media (max-width: 980px) { .projects.trio { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .projects.trio { grid-template-columns: 1fr; } }

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Anthony Ellis — Software Engineer</title>
-<meta name="description" content="Three simulations I wrote in plain JavaScript: a galaxy you can fly into, a city that grows around the roads you draw, and 4,000 fish in a tank of diggable sand. All of them run in a browser.">
+<meta name="description" content="Self-taught engineer in Las Vegas. Nine years on a GameMaker space game, plus three browser simulations: a procedural galaxy, a city traffic sim and 4,000 flocking fish.">
 <link rel="canonical" href="https://anthonyellis.dev/">
 <meta name="theme-color" content="#070a10">
 
@@ -12,7 +12,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="anthonyellis.dev">
 <meta property="og:title" content="Anthony Ellis — Software Engineer">
-<meta property="og:description" content="A galaxy generator, a traffic simulator and a tank of 4,000 fish. Written in plain JavaScript, playable in a browser.">
+<meta property="og:description" content="A space game nine years in the making, and three simulations you can open in a browser.">
 <meta property="og:url" content="https://anthonyellis.dev/">
 <meta property="og:image" content="https://anthonyellis.dev/assets/img/social.jpg">
 <meta property="og:image:width" content="1200">
@@ -30,7 +30,8 @@
     <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
     <nav class="navlinks" aria-label="Primary">
       <a href="#work">Work</a>
-      <a href="#about" class="hide-sm">About</a>
+      <a href="#path" class="hide-sm">Path</a>
+      <a href="#about">About</a>
       <a href="#contact">Contact</a>
       <a href="https://github.com/AnthonyEllisDev">GitHub</a>
     </nav>
@@ -41,16 +42,16 @@
 
   <div class="hero wrap">
     <p class="eyebrow">Software engineer · Las Vegas</p>
-    <h1>I build simulations that run in a browser tab.</h1>
+    <h1>I build simulations, mostly after work.</h1>
     <p class="lede">
-      A galaxy generator, a city traffic simulator, and a tank of fish that swim around sand you
-      can dig. They're written in plain JavaScript with no engine and no framework underneath, which
-      meant working out the spatial indexing, the random number generation and the render loop
-      myself. That was the point. Everything here opens in a browser and starts immediately.
+      For the last nine years that's meant a space game in GameMaker, built in the evenings
+      around whatever job I had at the time. More recently it's meant a procedural galaxy, a
+      city that jams when you plan it badly, and four thousand fish. I taught myself all of
+      it, starting from a tutorial about how to make a square move.
     </p>
     <div class="cta-row">
       <a class="btn btn-primary" href="#work">See the projects <span class="arrow" aria-hidden="true">→</span></a>
-      <a class="btn" href="https://github.com/AnthonyEllisDev">GitHub</a>
+      <a class="btn" href="#path">How I got here</a>
       <a class="btn" href="mailto:anthony@anthonyellis.dev">Email me</a>
     </div>
   </div>
@@ -59,38 +60,73 @@
   <section id="work" class="wrap">
     <div class="section-head">
       <h2>Selected work</h2>
-      <span class="count">03 projects · all live</span>
+      <span class="count">04 projects</span>
     </div>
 
     <div class="projects">
 
-      <!-- ---------------------------------------------------- galaxy ----- -->
+      <!-- ------------------------------------------------ space game ----- -->
       <article class="card feature">
+        <a class="shot" href="/projects/space-game/">
+          <span class="badge-wip">In development · since 2016</span>
+          <img src="/assets/img/spacegame.jpg"
+               alt="Pixel-art space game: a ship beside an orbital base with conveyor belts, solar panel arrays and turrets, asteroids and other ships drifting nearby, with an inventory hotbar along the bottom."
+               width="1200" height="750" fetchpriority="high">
+        </a>
+        <div class="body">
+          <p class="kicker">GameMaker · GML · Procedural generation</p>
+          <h3><a href="/projects/space-game/">Space Game</a></h3>
+          <p class="blurb">
+            In August 2016 No Man's Sky launched badly and I told my friends on Discord that
+            I could probably make something with that much depth in GameMaker. I was wrong
+            about how hard it would be, and I've been working on it ever since. An infinite
+            procedurally generated galaxy you mine, build factories in, defend, and fly
+            through in a ship you designed. It's headed for Steam.
+          </p>
+          <ul class="chips">
+            <li class="chip">GameMaker Studio</li>
+            <li class="chip">GML</li>
+            <li class="chip">Chunked world streaming</li>
+            <li class="chip">Shaders</li>
+            <li class="chip">9 years of evenings</li>
+          </ul>
+          <div class="links">
+            <a class="btn btn-primary" href="/projects/space-game/">Read the write-up <span class="arrow" aria-hidden="true">→</span></a>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="subhead">
+      <h3>Browser demos</h3>
+      <span class="note">Three simulations, built over about a month of evenings in mid-2026, so there'd be something you can actually click.</span>
+    </div>
+
+    <div class="projects trio">
+
+      <!-- ---------------------------------------------------- galaxy ----- -->
+      <article class="card">
         <a class="shot" href="/projects/galaxy/">
-          <span class="badge-live">Featured</span>
           <img src="/assets/img/galaxy.jpg"
-               alt="A spiral galaxy of 160,000 stars rendered as a glowing point cloud, with generator parameter panels on the left and a stellar census on the right."
-               width="1200" height="749" fetchpriority="high">
+               alt="A spiral galaxy of 160,000 stars rendered as a glowing point cloud."
+               width="1200" height="749" loading="lazy">
         </a>
         <div class="body">
           <p class="kicker">Procedural generation · WebGL</p>
           <h3><a href="/projects/galaxy/">Procedural Galaxy Generator</a></h3>
           <p class="blurb">
-            Type a seed like <code>7F8A-2C91-BD44</code> and you get a galaxy. Type it on someone
-            else's machine and you get the same galaxy, down to the mountain ranges on a particular
-            planet, because none of it is stored anywhere. It gets recomputed from those twelve
-            characters every time. You can fly from a quarter of a million stars down to the ground.
+            Type a seed and get a galaxy. Type it on another machine and get the same one,
+            down to the mountains on a particular planet, because nothing is stored. A
+            quarter of a million stars in a single draw call.
           </p>
           <ul class="chips">
             <li class="chip">three.js</li>
-            <li class="chip">Custom GLSL</li>
+            <li class="chip">GLSL</li>
             <li class="chip">Web Worker</li>
-            <li class="chip">sfc32 PRNG</li>
-            <li class="chip">Headless test suite</li>
           </ul>
           <div class="links">
-            <a class="btn btn-primary" href="/demos/galaxy.html">Launch demo <span class="arrow" aria-hidden="true">→</span></a>
-            <a class="btn" href="/projects/galaxy/">Read the write-up</a>
+            <a class="btn btn-primary" href="/demos/galaxy.html">Launch <span class="arrow" aria-hidden="true">→</span></a>
+            <a class="btn" href="/projects/galaxy/">Write-up</a>
           </div>
         </div>
       </article>
@@ -99,27 +135,25 @@
       <article class="card">
         <a class="shot" href="/projects/arterial/">
           <img src="/assets/img/arterial.jpg"
-               alt="Top-down view of a simulated city at dusk: a grid of roads with lane markings, colored zoning blocks, buildings with lit windows, and cars queued at signals."
+               alt="Top-down simulated city at dusk with lane markings, zoning colors and cars queued at signals."
                width="1200" height="750" loading="lazy">
         </a>
         <div class="body">
-          <p class="kicker">Agent simulation · Graph algorithms</p>
-          <h3><a href="/projects/arterial/">Arterial — City Traffic Simulator</a></h3>
+          <p class="kicker">Agent simulation · Graphs</p>
+          <h3><a href="/projects/arterial/">Arterial</a></h3>
           <p class="blurb">
-            Draw some roads, paint some zoning, and a city grows along them. Then it jams. Every car
-            picks its own route and follows the one ahead using a traffic model borrowed from the
-            research literature, so the congestion figure in the corner is measured rather than
-            invented. Bad junction placement shows up as a queue about a minute later.
+            Draw roads, zone land, watch a city grow along them and then jam. Every car
+            routes itself and follows the one ahead using models out of the traffic-flow
+            literature, so congestion is measured rather than assigned.
           </p>
           <ul class="chips">
             <li class="chip">Canvas 2D</li>
             <li class="chip">IDM + MOBIL</li>
-            <li class="chip">A* routing</li>
-            <li class="chip">Fixed 60 Hz step</li>
+            <li class="chip">A*</li>
           </ul>
           <div class="links">
-            <a class="btn btn-primary" href="/demos/arterial.html">Launch demo <span class="arrow" aria-hidden="true">→</span></a>
-            <a class="btn" href="/projects/arterial/">Read the write-up</a>
+            <a class="btn btn-primary" href="/demos/arterial.html">Launch <span class="arrow" aria-hidden="true">→</span></a>
+            <a class="btn" href="/projects/arterial/">Write-up</a>
           </div>
         </div>
       </article>
@@ -128,27 +162,25 @@
       <article class="card">
         <a class="shot" href="/projects/aquarium/">
           <img src="/assets/img/aquarium.jpg"
-               alt="Hundreds of small glowing fish in several colors flocking through dark blue water above a sculpted sand bed lit by light rays."
+               alt="Hundreds of small glowing fish flocking above a sculpted sand bed lit by light rays."
                width="1200" height="750" loading="lazy">
         </a>
         <div class="body">
           <p class="kicker">Flocking · Cellular automata</p>
-          <h3><a href="/projects/aquarium/">Aquarium &amp; Cellular Automata Sandbox</a></h3>
+          <h3><a href="/projects/aquarium/">Aquarium Sandbox</a></h3>
           <p class="blurb">
-            Four thousand fish, and a bed of sand you can dig into while they're swimming over it.
-            The fish were the easy part. Getting from three hundred of them to four thousand without
-            the frame rate falling over meant throwing away the obvious data structures. There's a
-            readout in the corner showing how much work the grid saves each frame.
+            Four thousand fish and a bed of sand you can dig while they swim over it. The
+            fish were the easy part; getting from three hundred to four thousand meant
+            throwing out the obvious data structures.
           </p>
           <ul class="chips">
             <li class="chip">Canvas 2D</li>
             <li class="chip">Spatial hash</li>
-            <li class="chip">Typed-array pools</li>
-            <li class="chip">Zero dependencies</li>
+            <li class="chip">Typed arrays</li>
           </ul>
           <div class="links">
-            <a class="btn btn-primary" href="/demos/aquarium.html">Launch demo <span class="arrow" aria-hidden="true">→</span></a>
-            <a class="btn" href="/projects/aquarium/">Read the write-up</a>
+            <a class="btn btn-primary" href="/demos/aquarium.html">Launch <span class="arrow" aria-hidden="true">→</span></a>
+            <a class="btn" href="/projects/aquarium/">Write-up</a>
           </div>
         </div>
       </article>
@@ -158,37 +190,196 @@
     <p class="caption" style="margin-top:18px">All three want a mouse and a keyboard, so a desktop browser is the better place to open them.</p>
   </section>
 
-  <!-- ==================================================== about ========= -->
-  <section id="about" class="wrap">
-    <div class="section-head"><h2>About</h2></div>
+  <!-- ==================================================== path ========== -->
+  <section id="path" class="wrap">
+    <div class="section-head">
+      <h2>How I got here</h2>
+      <span class="count">2014 → now</span>
+    </div>
     <div class="prose">
       <p>
-        I'm Anthony. I live in Las Vegas and I work at Zoox on the operations side of driverless
-        cars, which is close enough to the interesting problems to be frustrating. So I write
-        simulations in my own time.
-      </p>
-      <p>
-        The part I care about is the layer under the thing you can see. How do you find the nearest
-        thirty fish out of four thousand without checking all four thousand? How do you build a road
-        network a car can actually plan a route through, when the player is allowed to bulldoze the
-        road the car is driving on? Questions like that are why none of these projects sit on top of
-        an engine. If I'd built the galaxy in Unity, what I would have learned is Unity.
-      </p>
-      <p>
-        I'm looking for work in simulation, gameplay, graphics or tools. If that's what your team
-        does, <a href="mailto:anthony@anthonyellis.dev">say hello</a>.
+        I've never had a job that involved writing code. The top of this line is how I paid
+        rent; the bottom is what I was actually doing with my evenings. They only started
+        converging recently.
       </p>
     </div>
 
-    <h3 style="font-family:var(--mono);font-size:.76rem;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:32px 0 12px">What I use</h3>
+    <div class="rail-legend">
+      <span class="w"><i></i> Work</span>
+      <span class="s"><i></i> Self-taught</span>
+    </div>
+
+    <div class="rail-wrap">
+      <div class="rail">
+
+        <div class="moment is-work">
+          <div class="card-t">
+            <span class="org">Del Sol High School</span>
+            <h3>Graduated</h3>
+            <p>Las Vegas. No plan beyond finding work.</p>
+          </div>
+          <div class="node"><span class="dot"></span><span class="year">Jun 2014</span></div>
+        </div>
+
+        <div class="moment is-both">
+          <div class="card-t">
+            <span class="org">Great Buns Bakery</span>
+            <h3>Sanitation</h3>
+            <p>First job. More factory than bakery: pallets of trash, scraping dough off concrete, power-washing baking trays.</p>
+          </div>
+          <div class="node"><span class="dot"></span><span class="year">Summer 2014</span></div>
+          <div class="card-b">
+            <h3>Opened GameMaker</h3>
+            <p>A Facebook quiz asked whether I'd ever made a Zelda fangame. That question stuck. First search: "how do I move player in GameMaker Studio". First result that worked: a platformer built with Zelda 2 sprites.</p>
+          </div>
+        </div>
+
+        <div class="moment is-self">
+          <div class="node"><span class="dot"></span><span class="year">2015</span></div>
+          <div class="card-b">
+            <h3>A snake game in Notepad</h3>
+            <p>Wrote it in Python, in a text editor, to find out whether what I'd learned transferred to another language. It did.</p>
+          </div>
+        </div>
+
+        <div class="moment is-self">
+          <div class="node"><span class="dot"></span><span class="year">Aug 2016</span></div>
+          <div class="card-b">
+            <h3>Started the space game</h3>
+            <p>No Man's Sky launched to a hostile reception and I claimed on a Discord call that I could make something as deep in GameMaker. Nine years later I'm still finding out how wrong that was.</p>
+          </div>
+        </div>
+
+        <div class="moment is-self">
+          <div class="node"><span class="dot"></span><span class="year">Oct 2016</span></div>
+          <div class="card-b">
+            <h3>First real PC</h3>
+            <p>A prebuilt with a GTX 1080, bought with bakery money after a Lenovo laptop and a machine from Fry's with a Radeon older than the laptop. Plugged the HDMI into the motherboard and sat looking at a black screen.</p>
+          </div>
+        </div>
+
+        <div class="moment is-work">
+          <div class="card-t">
+            <span class="org">Raising Cane's</span>
+            <h3>Crew trainer</h3>
+            <p>Trained new hires on the register during peak.</p>
+          </div>
+          <div class="node"><span class="dot"></span><span class="year">Dec 2017 – Dec 2018</span></div>
+        </div>
+
+        <div class="moment is-both">
+          <div class="card-t">
+            <span class="org">Alorica</span>
+            <h3>Customer service rep</h3>
+            <p>Four and a half years of high-volume calls and email. Learned to find a root cause instead of treating a symptom, which turned out to transfer.</p>
+          </div>
+          <div class="node"><span class="dot"></span><span class="year">Jan 2019 – Jun 2023</span></div>
+          <div class="card-b">
+            <h3>Dozens of GameMaker projects</h3>
+            <p>A 2D take on Hyrule Warriors, a Zelda 2 clone, a top-down spellcasting game, an Agar.io-style life simulation. Most unfinished, all of them teaching something.</p>
+          </div>
+        </div>
+
+        <div class="moment is-work">
+          <div class="card-t">
+            <span class="org">Fasteners, Inc. / Southwestern Supply</span>
+            <h3>Customer service rep</h3>
+            <p>Technical product support in SAP and NetSuite. Matching customers to the right part from a spec sheet.</p>
+          </div>
+          <div class="node"><span class="dot"></span><span class="year">Jul 2023 – Dec 2024</span></div>
+        </div>
+
+        <div class="moment is-work">
+          <div class="card-t">
+            <span class="org">SunSource Energy</span>
+            <h3>Solar appointment setter</h3>
+            <p>Cold calling, three to five qualified appointments a day. The company folded in July.</p>
+          </div>
+          <div class="node"><span class="dot"></span><span class="year">Jan – Jul 2025</span></div>
+        </div>
+
+        <div class="moment is-work">
+          <div class="card-t">
+            <h3>Between jobs</h3>
+            <p>Six months of applications. I stopped waiting for the market to hand me something and started deciding what I wanted to be applying <em>for</em>.</p>
+          </div>
+          <div class="node"><span class="dot"></span><span class="year">Jul 2025 – Jan 2026</span></div>
+        </div>
+
+        <div class="moment is-work">
+          <div class="card-t">
+            <span class="org">Zoox</span>
+            <h3>Ride operations</h3>
+            <p>Applied in September, heard nothing, followed up on a whim in December, interviewed in January. Now I monitor and remotely operate driverless vehicles in live service, run test missions on pre-release features and file the reports engineering works from.</p>
+          </div>
+          <div class="node"><span class="dot"></span><span class="year">Jan 2026 →</span></div>
+        </div>
+
+        <div class="moment is-both">
+          <div class="card-t">
+            <h3>Deciding to be deliberate</h3>
+            <p>First time I've treated any of this as a career rather than a hobby that happens next to one.</p>
+          </div>
+          <div class="node"><span class="dot"></span><span class="year">Aug 2026</span></div>
+          <div class="card-b">
+            <h3>Three demos and a domain</h3>
+            <p>Bought anthonyellis.dev and built the galaxy, the traffic sim and the aquarium so there'd be something to point at. Same feeling as downloading GameMaker: a thing I'd assumed was out of reach, until I looked at it properly.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <p class="rail-hint">Drag or scroll sideways to move through it →</p>
+  </section>
+
+  <!-- ==================================================== about ========= -->
+  <section id="about" class="wrap">
+    <div class="section-head"><h2>About</h2></div>
+
+    <div class="about-grid">
+      <div class="portrait">
+        <img src="/assets/img/anthony.jpg" alt="Anthony Ellis" width="640" height="640" loading="lazy">
+      </div>
+      <div class="prose">
+        <p>
+          I'm Anthony. I live in Las Vegas and I work at Zoox on the operations side of
+          driverless cars, which puts me close enough to the interesting problems to want
+          to be working on them.
+        </p>
+        <p>
+          Before code I drew, sculpted with clay and wrote stories, so making things was
+          never the new part. Code just looked like math from the outside, tedious and
+          unrewarding, until the first project came to life and turned out to be the same
+          impulse pointed somewhere else. Now the part I care about is the layer under the
+          thing you can see. How do you find the nearest thirty fish out of four thousand
+          without checking all four thousand? How does a car plan a route through a road
+          network the player is allowed to bulldoze while it's driving?
+        </p>
+        <p>
+          I'm not planning on a degree. I've watched too many people take on debt for a
+          piece of paper and land in a job that would have hired them anyway. What I do
+          instead is pick a problem I don't understand and stay on it until I do, which is
+          how everything on this page got built.
+        </p>
+        <p>
+          I'm looking for entry-level or junior work in simulation, gameplay, graphics or
+          tools, remote or here in Las Vegas.
+          <a href="mailto:anthony@anthonyellis.dev">Get in touch</a> if that's the sort of
+          thing your team does.
+        </p>
+      </div>
+    </div>
+
+    <h3 style="font-family:var(--mono);font-size:.76rem;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:34px 0 12px">What I use</h3>
     <ul class="chips">
+      <li class="chip">GameMaker / GML</li>
       <li class="chip">JavaScript (ES2022)</li>
       <li class="chip">Canvas 2D</li>
       <li class="chip">WebGL / three.js</li>
       <li class="chip">GLSL shaders</li>
       <li class="chip">Web Workers</li>
       <li class="chip">Typed arrays</li>
-      <li class="chip">Spatial hashing / quadtrees</li>
+      <li class="chip">Spatial hashing</li>
       <li class="chip">A* &amp; graph search</li>
       <li class="chip">Procedural noise</li>
       <li class="chip">Deterministic PRNG</li>
@@ -202,7 +393,7 @@
   <section id="contact" class="wrap">
     <div class="section-head"><h2>Contact</h2></div>
     <div class="prose">
-      <p>Email reaches me fastest. The code for everything above is on GitHub.</p>
+      <p>Email reaches me fastest. The code for this site and the demos is on GitHub.</p>
     </div>
     <div class="contact-row">
       <a class="btn btn-primary" href="mailto:anthony@anthonyellis.dev">anthony@anthonyellis.dev</a>
@@ -215,7 +406,7 @@
 
 <footer class="site">
   <div class="wrap">
-    <span>© <span id="yr">2026</span> Anthony Ellis · Hand-written HTML on GitHub Pages</span>
+    <span>© <span id="yr">2026</span> Anthony Ellis · Hand-written HTML on GitHub Pages · no analytics</span>
     <span><a href="https://github.com/AnthonyEllisDev/portfolio">Source of this site</a></span>
   </div>
 </footer>

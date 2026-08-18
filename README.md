@@ -17,9 +17,11 @@ assets/
   favicon.svg
   img/*.jpg             screenshots of each demo (also used for link previews)
 projects/
+  space-game/index.html case study  →  /projects/space-game/   (GameMaker, no demo)
   galaxy/index.html     case study  →  /projects/galaxy/
   arterial/index.html   case study  →  /projects/arterial/
   aquarium/index.html   case study  →  /projects/aquarium/
+test/verify.mjs         17 automated checks against demos/galaxy.html (npm run verify)
 demos/
   galaxy.html           the live simulations, each a single self-contained file
   arterial.html
@@ -67,3 +69,15 @@ to it bounces.
 `resume-source.html`: open that file in Chrome, Cmd/Ctrl + P, "Save as PDF", Letter,
 margins set to None (the page sets its own), background graphics on. `resume.docx` is
 the editable version for recruiters and job portals that demand Word.
+
+
+## The timeline
+
+The "How I got here" section on the landing page is a two-track rail: work above the
+spine, self-taught below it. Each entry is one `.moment` block containing an optional
+`.card-t` (work), a `.node` (dot plus year) and an optional `.card-b` (personal). Add
+`is-work`, `is-self` or `is-both` to the moment to color the dot.
+
+It scrolls horizontally on desktop and collapses to a vertical timeline under 760px, both
+from the same markup. To add an entry, copy a `.moment` block and drop it in chronological
+order; nothing is positioned by date, only by document order.

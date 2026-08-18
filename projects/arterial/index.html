@@ -24,7 +24,8 @@
     <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
     <nav class="navlinks" aria-label="Primary">
       <a href="/#work">Work</a>
-      <a href="/#about" class="hide-sm">About</a>
+      <a href="/#path" class="hide-sm">Path</a>
+      <a href="/#about">About</a>
       <a href="/#contact">Contact</a>
       <a href="https://github.com/AnthonyEllisDev">GitHub</a>
     </nav>
@@ -42,7 +43,7 @@
     </p>
     <div class="cta-row">
       <a class="btn btn-primary" href="/demos/arterial.html">Launch demo <span class="arrow" aria-hidden="true">→</span></a>
-      <a class="btn" href="https://github.com/AnthonyEllisDev">Source on GitHub</a>
+      <a class="btn" href="https://github.com/AnthonyEllisDev/portfolio/blob/main/demos/arterial.html">View source</a>
     </div>
   </div>
 
@@ -63,20 +64,41 @@
 
   <article class="case">
 
-    <h2>Why simulate the drivers</h2>
+    <h2>Where it came from</h2>
     <p>
-      City builders usually fake this. Cars are decoration, and congestion is a number the game
-      assigns to a road tile based on how many houses are nearby. I wanted to find out what happens
-      if you refuse to do that. Here every vehicle has somewhere to be, plans its own way there,
-      follows whoever is in front of it using a real car-following model, decides for itself whether
-      changing lanes is worth the trouble, and has to be granted permission before it can cross a
-      junction. When an avenue backs up, it's because a few hundred of those decisions ran into each
-      other in the same place.
+      Cities: Skylines and Mini Metro are my two favorite games to unwind with, and this started as
+      an attempt to fuse them. It's one of three browser demos I built over about a month of evenings
+      in mid-2026 to have something interactive on this site.
     </p>
     <p>
-      The payoff is that the simulation can surprise you. I've built layouts that looked fine and
-      then watched one badly-placed signal starve half the city of deliveries.
+      The thing I wanted to get right is the part city builders usually fake. Normally cars are
+      decoration and congestion is a number the game assigns to a road tile based on how many houses
+      are nearby. Here every vehicle has somewhere to be, plans its own way there, follows whoever is
+      in front of it using a real car-following model, decides for itself whether changing lanes is
+      worth the trouble, and has to be granted permission before it can cross a junction. When an
+      avenue backs up, it's because a few hundred of those decisions ran into each other in the same
+      place.
     </p>
+
+    <h3>The design problem, which wasn't technical</h3>
+    <p>
+      The first version wasn't fun. Everything worked and it still felt bad to play, because the
+      constraints I'd put on the player made every decision feel like a test I was failing. Taking
+      the limits off and letting people build badly on purpose is what made it enjoyable. That was a
+      useful thing to learn early: a simulation being correct and a simulation being worth playing
+      are two separate problems.
+    </p>
+
+    <div class="thenandnow">
+      <figure>
+        <img src="/assets/img/arterial-old.jpg" alt="An early prototype: two blue squares, an orange square, three straight road segments and a single car." width="1000" height="625" loading="lazy">
+        <figcaption><span class="tag">First version</span>Blue houses spawn cars, cars pathfind to orange stores. Straight segments, no lanes, no junction logic.</figcaption>
+      </figure>
+      <figure>
+        <img src="/assets/img/arterial.jpg" alt="The current version: a full city grid at dusk with lane markings, roundabouts, zoning and traffic." width="1200" height="750" loading="lazy">
+        <figcaption><span class="tag">Now</span>Bézier lanes, IDM car-following, MOBIL lane changes, reservation-based junctions, and a city that grows along what you draw.</figcaption>
+      </figure>
+    </div>
 
     <h2>How a car gets from A to B</h2>
 
@@ -153,7 +175,7 @@
       wrong lane would wait forever for a gap that could never appear, so it now re-plans from the
       lane it's actually sitting in. And a stalled reservation could hold a junction hostage
       indefinitely, so reservations expire. Both are places where the physically correct rule needed
-      an escape hatch to stay playable, which annoyed me for about a day before I gave in.
+      an escape hatch to stay playable.
     </p>
 
     <h2>The city on top</h2>
@@ -170,6 +192,30 @@
     <div class="notecard">
       <p>Map generation runs on a seeded <code>mulberry32</code> generator, so a map I can reproduce
       is a bug I can reproduce.</p>
+    </div>
+
+    <h2>An early bug I liked</h2>
+    <p>
+      Before junction handling existed, cars approaching an intersection would glide straight
+      through it and off the end of the road, carrying on into open space. It looks absurd and it's
+      a good illustration of what all the machinery above is actually for. A car following a curve
+      is easy. A car deciding whether it's allowed to be in a particular piece of road at a
+      particular moment is the entire problem.
+    </p>
+
+    <div class="pullquote">
+      It's easy to make a perfect simulation. It's hard to make a realistic one.
+      <span>Something the day job has made obvious. Real traffic is far more chaotic than
+      anything a model produces, and reproducing that chaos honestly is harder than making it
+      run cleanly.</span>
+    </div>
+
+    <div class="tryit">
+      <h4>Try this</h4>
+      <p>Build a city using nothing but roundabouts. Throughput goes up and the network stops
+      needing signals at all, right up until one arm gets busy enough that nobody can enter the
+      ring. Then try the opposite: put signals on everything and watch the queues form in
+      completely different places.</p>
     </div>
 
     <h2>Performance</h2>

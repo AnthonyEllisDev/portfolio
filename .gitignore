@@ -1,0 +1,29 @@
+# ── Private working files ────────────────────────────────────────────────
+# Notes and prep. None of this needs to be public, and some of it is personal.
+interview.md
+interview-2.md
+study/
+
+# Source material for the site's images. The versions actually used are
+# already committed under assets/img/, so this folder is just the originals.
+Headshot and Old Demos/
+
+# Internal notes that contain a personal email address. Keep them locally, or
+# scrub the address and un-ignore them.
+EMAIL-SETUP.md
+DEPLOY.md
+
+# ── Tooling ──────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+.playwright/
+test-results/
+
+# ── OS and editor litter ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~

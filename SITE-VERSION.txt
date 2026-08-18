@@ -1,23 +1,32 @@
-Portfolio site — version 4  (2026-08-17)
+Portfolio site — version 5  (2026-08-18)
 
-This is the newest bundle. If the copy you are looking at does not match this file,
-you have an older zip.
+This is the newest bundle.
 
-v4 rewrites all the site copy to stop it reading like it was written by a chatbot
-(fewer em dashes, no "X, not Y" headings, no bolded emphasis every paragraph, plain
-American spelling, more specifics and fewer flourishes). No layout or code changed.
+New in v5:
+  - Space Game added as the lead project, with its own write-up and screenshots
+    (projects/space-game/)
+  - "How I got here" timeline on the landing page: work above the line,
+    self-taught below it, 2014 to now
+  - About section rewritten with the real story, plus a photo
+  - The three browser demos are now framed as what they are: three simulations
+    built over about a month, grouped under their own heading
+  - Real origins on each demo write-up (Cities: Skylines and Mini Metro, the Flash
+    aquarium game and Sebastian Lague's boids episode, liking space)
+  - Before-and-after shots of the early aquarium and traffic prototypes
+  - "Try this" boxes on all three demo pages
+  - test/verify.mjs — 17 automated checks, so the determinism and worker claims on
+    the galaxy page are demonstrable rather than asserted
+  - Fixed: the galaxy page said 512², the textures are 512x256
+  - Fixed: .wrap's padding shorthand was cancelling vertical section padding
 
-What this bundle contains that v1 (the first bundle) did not:
-  - contact email changed to anthony@anthonyellis.dev everywhere (was the personal Gmail)
-  - every GitHub link points at github.com/AnthonyEllisDev (was LinkFarore)
-  - resume.pdf, resume.docx and resume-source.html
+Carried over from v3/v4:
+  - contact email is anthony@anthonyellis.dev everywhere
+  - every GitHub link points at github.com/AnthonyEllisDev
+  - resume.pdf, resume.docx, resume-source.html
   - CNAME (contains: anthonyellis.dev)
-  - README.md, DEPLOY.md, EMAIL-SETUP.md, RECOVERY.md
 
-Quick check after you copy the files into the repo — run this in the repo folder:
+Quick check after copying into the repo:
 
     grep -c anthonyellis702 index.html     # must print 0
-    grep -c AnthonyEllisDev index.html     # must print 3 or more
-    ls resume.pdf CNAME                    # both must exist
-
-If all three pass, commit and push.
+    ls projects/space-game/index.html      # must exist
+    ls test/verify.mjs                     # must exist

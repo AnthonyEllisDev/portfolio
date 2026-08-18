@@ -1,0 +1,14 @@
+{
+  "name": "anthonyellis-dev",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Source for anthonyellis.dev, plus the verification suite for the galaxy generator.",
+  "scripts": {
+    "verify": "node test/verify.mjs demos/galaxy.html",
+    "serve": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0"
+  }
+}

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space Game — Anthony Ellis</title>
+<meta name="description" content="A top-down infinite space game in GameMaker: procedural galaxy, asteroid mining, factory building, tower defense and player-designed ships. Started in 2016, still going, headed for Steam.">
+<link rel="canonical" href="https://anthonyellis.dev/projects/space-game/">
+<meta name="theme-color" content="#070a10">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="anthonyellis.dev">
+<meta property="og:title" content="Space Game — nine years in GameMaker">
+<meta property="og:description" content="Started because No Man's Sky launched badly and I said I could do better. Still finding out how wrong that was.">
+<meta property="og:url" content="https://anthonyellis.dev/projects/space-game/">
+<meta property="og:image" content="https://anthonyellis.dev/assets/img/spacegame.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/#work">Work</a>
+      <a href="/#path" class="hide-sm">Path</a>
+      <a href="/#about">About</a>
+      <a href="/#contact">Contact</a>
+      <a href="https://github.com/AnthonyEllisDev">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="case-hero">
+    <a class="backlink" href="/#work">← All projects</a>
+    <p class="eyebrow">GameMaker · GML · In development</p>
+    <h1>Space Game</h1>
+    <p class="lede">
+      An infinite procedurally generated galaxy you mine, build in, defend and fly through
+      in a ship you designed yourself. I started it in August 2016 and I'm still on it.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="mailto:anthony@anthonyellis.dev">Ask me about it <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="/#work">Other projects</a>
+    </div>
+  </div>
+
+  <div class="shotframe">
+    <img src="/assets/img/spacegame.jpg"
+         alt="Pixel-art space game: the player ship beside an orbital base built from conveyor belts, solar panel arrays and turrets, with asteroids, drifting wrecks and other ships nearby."
+         width="1200" height="750">
+  </div>
+  <p class="caption">A base under construction: belts feeding a processing line, solar arrays for power, turrets covering the approach. The bar along the bottom is shields, hull and energy.</p>
+
+  <dl class="factgrid">
+    <div class="fact"><dt>Role</dt><dd>Sole developer</dd></div>
+    <div class="fact"><dt>Engine</dt><dd>GameMaker Studio, GML</dd></div>
+    <div class="fact"><dt>Started</dt><dd>August 2016</dd></div>
+    <div class="fact"><dt>Status</dt><dd>In development, Steam release planned</dd></div>
+    <div class="fact"><dt>Longest break</dt><dd>Nine months, then back to it</dd></div>
+  </dl>
+
+  <article class="case">
+
+    <h2>Where it came from</h2>
+    <p>
+      No Man's Sky launched in August 2016 and the reception was brutal. On a Discord call I
+      told my friends I could probably make something with that much depth in GameMaker.
+      That was a joke, and then it wasn't.
+    </p>
+    <p>
+      The early weeks were easy, which is the trap. Ships moved, asteroids broke apart,
+      things exploded. The moment I started building systems that had to talk to each other,
+      the actual size of game development turned up all at once. What surprised me is that it
+      didn't put me off. Working the sanitation shift at the bakery, I'd spend hours zoned
+      out on some problem I was stuck on, and if something occurred to me I'd type it into
+      my phone before I forgot it. That's the thing I'd point to if someone asked whether I
+      like this work: the job was scraping dough off concrete and I was still thinking about
+      collision code.
+    </p>
+
+    <h2>What it is now</h2>
+    <p>
+      Top-down, infinite, procedurally generated. You fly out, find asteroids worth mining,
+      and haul what you pull out of them back to a base you build yourself. That base is a
+      factory: belts, processing, power, and turrets to keep it alive when something comes
+      for it. Weapons are built rather than bought, and the ship is yours to configure.
+      Factorio and tower defense, in space, in a sidescroller-sized pixel art style.
+    </p>
+
+    <div class="thenandnow">
+      <figure>
+        <img src="/assets/img/spacegame-mining.jpg" alt="The ship mining a rock asteroid, with a readout showing hit points, scrap yield, crystal yield and experience." width="1200" height="675" loading="lazy">
+        <figcaption><span class="tag">Mining</span>Targeting a rock asteroid. Each one reports what it's worth before you spend time on it.</figcaption>
+      </figure>
+      <figure>
+        <img src="/assets/img/spacegame-planet.jpg" alt="A banded gas giant with orbital paths drawn across the starfield, a moon below, and the player ship between them." width="1200" height="675" loading="lazy">
+        <figcaption><span class="tag">Orbits</span>Planets and moons on drawn orbital paths, with a minimap tracking what's around you.</figcaption>
+      </figure>
+    </div>
+
+    <h2>The parts that were hard</h2>
+
+    <h3>Chunked rendering, three times over</h3>
+    <p>
+      An infinite world means deciding what exists near the player and what doesn't, and
+      doing it without a frame-rate cliff every time you cross a boundary. I wrote a chunk
+      system, then wrote another one, then wrote a third. Coming back after a nine-month
+      break I found all three still in the project, two of them doing nothing, all of them
+      tangled together closely enough that it wasn't obvious where one ended and the next
+      started. Untangling that took longer than writing any of them.
+    </p>
+    <p>
+      That's where I learned to comment code, and I mean actually learned it, not read it in
+      a style guide. Comments are a message to the person who comes back in nine months, and
+      that person is always me.
+    </p>
+
+    <h3>Shaders</h3>
+    <p>
+      Fun to play with and finicky to get right. Most of the lighting and effect work in the
+      screenshots came out of a long stretch of not quite understanding what I was doing,
+      then understanding it.
+    </p>
+
+    <div class="thenandnow" style="grid-template-columns:1fr">
+      <figure>
+        <img src="/assets/img/spacegame-combat.jpg" alt="Combat: the player ship firing on a red enemy, projectiles trailing across the starfield, minimap showing contacts." width="1200" height="675" loading="lazy">
+        <figcaption><span class="tag">Combat</span>Weapons are built from parts rather than picked off a list, so the loadout is a decision rather than a menu.</figcaption>
+      </figure>
+    </div>
+
+    <h2>Why it's still going</h2>
+    <p>
+      I take breaks from it, sometimes months at a time, and I always come back. Nine years
+      of that is the honest measure of whether someone wants to do this work: not whether
+      they can sprint at it for a weekend, but whether they're still there after the
+      novelty has completely worn off and the code is a mess of their own making.
+    </p>
+    <p>
+      It's my main focus at the moment. The plan is to get it to a state I'm happy to put in
+      front of people, and then put it on Steam.
+    </p>
+
+    <div class="cta-row" style="margin-top:36px">
+      <a class="btn btn-primary" href="mailto:anthony@anthonyellis.dev">Ask me about it <span class="arrow" aria-hidden="true">→</span></a>
+    </div>
+
+    <nav class="pager">
+      <span></span>
+      <a href="/projects/galaxy/">Next: Procedural Galaxy Generator →</a>
+    </nav>
+  </article>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© <span class="yr">2026</span> Anthony Ellis</span>
+    <span><a href="/#work">All projects</a></span>
+  </div>
+</footer>
+
+<script>document.querySelectorAll('.yr').forEach(e => e.textContent = new Date().getFullYear());</script>
+</body>
+</html>
