@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arterial — City Traffic Simulator — Anthony Ellis</title>
-<meta name="description" content="A browser city traffic and logistics simulator: Intelligent Driver Model car-following, MOBIL lane changing, reservation-based junction arbitration and A* routing over lane space.">
+<meta name="description" content="A city traffic simulator in the browser. Cars follow the Intelligent Driver Model, change lanes with MOBIL, book their way through junctions and route with A* over lane space.">
 <link rel="canonical" href="https://anthonyellis.dev/projects/arterial/">
 <meta name="theme-color" content="#070a10">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="anthonyellis.dev">
 <meta property="og:title" content="Arterial — City Traffic Simulator">
-<meta property="og:description" content="Draw roads, zone land, watch the city jam. IDM car-following, MOBIL lane changes, reservation-based junctions.">
+<meta property="og:description" content="Draw roads, paint zoning, watch the city jam. Every car routes and drives for itself.">
 <meta property="og:url" content="https://anthonyellis.dev/projects/arterial/">
 <meta property="og:image" content="https://anthonyellis.dev/assets/img/arterial.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -37,9 +37,8 @@
     <p class="eyebrow">Agent simulation · Graph algorithms</p>
     <h1>Arterial — City Traffic Simulator</h1>
     <p class="lede">
-      Draw roads, zone land, and watch a city grow itself — then watch it jam. Congestion here is
-      never a number I chose; it is what happens when a few hundred independently-routed drivers
-      share the network you built.
+      Draw roads, zone some land, and a city grows along what you built. Then it jams, and the jam
+      is your fault, because nothing in the code decides how congested a road should be.
     </p>
     <div class="cta-row">
       <a class="btn btn-primary" href="/demos/arterial.html">Launch demo <span class="arrow" aria-hidden="true">→</span></a>
@@ -49,10 +48,10 @@
 
   <div class="shotframe">
     <img src="/assets/img/arterial.jpg"
-         alt="Top-down view of a simulated city at dusk: a grid of streets and avenues with lane markings and roundabouts, coloured residential, commercial and industrial zones, buildings with lit windows, and cars queued at signals."
+         alt="Top-down view of a simulated city at dusk: a grid of streets and avenues with lane markings and roundabouts, colored residential, commercial and industrial zones, buildings with lit windows, and cars queued at signals."
          width="1200" height="750">
   </div>
-  <p class="caption">A grid laid down in about a minute of play: 24 junctions, 35 roads, 115 buildings and 585 residents, at 07:11 p.m. in-game.</p>
+  <p class="caption">About a minute of drawing: 24 junctions, 35 roads, 115 buildings, 585 residents, 7:11 in the evening.</p>
 
   <dl class="factgrid">
     <div class="fact"><dt>Role</dt><dd>Sole developer</dd></div>
@@ -64,121 +63,129 @@
 
   <article class="case">
 
-    <h2>The idea</h2>
+    <h2>Why simulate the drivers</h2>
     <p>
-      City builders usually fake traffic: cars are decoration and congestion is a heuristic applied
-      to a road tile. I wanted the opposite — <strong>simulate the drivers and let the city's
-      problems emerge</strong>. Every vehicle has a destination, plans its own route, follows the
-      car in front with a real car-following model, decides for itself whether a lane change is
-      worth it, and has to be granted permission to cross a junction. If an avenue backs up, it is
-      because too many of those decisions collided in the same place.
+      City builders usually fake this. Cars are decoration, and congestion is a number the game
+      assigns to a road tile based on how many houses are nearby. I wanted to find out what happens
+      if you refuse to do that. Here every vehicle has somewhere to be, plans its own way there,
+      follows whoever is in front of it using a real car-following model, decides for itself whether
+      changing lanes is worth the trouble, and has to be granted permission before it can cross a
+      junction. When an avenue backs up, it's because a few hundred of those decisions ran into each
+      other in the same place.
+    </p>
+    <p>
+      The payoff is that the simulation can surprise you. I've built layouts that looked fine and
+      then watched one badly-placed signal starve half the city of deliveries.
     </p>
 
     <h2>How a car gets from A to B</h2>
 
-    <h3>Roads are Bézier rails, not tiles</h3>
+    <h3>Roads are curves with a lookup table</h3>
     <p>
-      Each road is a quadratic Bézier centre line with an arc-length lookup table, so a car's
-      position along it is a single scalar <code>s</code> that maps to a real world point at a
-      constant rate. Lanes are parallel offsets of that curve — shift the endpoints along their
-      normals and re-derive the control point — which means lane geometry, markings, medians and
-      junction pads all fall out of one curve definition. Curvature also caps speed:
-      <code>v ≤ √(a_lat · R)</code>, so cars slow into tight bends without any special case.
+      Every road is a quadratic Bézier down its center with an arc-length table alongside it, so a
+      car's position is one number that maps to a point in the world at a steady rate. Lanes are
+      offsets of that same curve: shift the endpoints along their normals, re-derive the control
+      point, and the lane geometry, the markings, the medians and the junction pads all come out of
+      one definition. Curvature caps speed too, at <code>v ≤ √(a_lat · R)</code>, so cars slow into
+      tight bends without a line of code that says "slow into tight bends".
     </p>
 
-    <h3>Routing happens in lane space, not road space</h3>
+    <h3>Routing runs over lanes, not roads</h3>
     <p>
-      A* runs over <em>lanes and the connectors between them</em>, not over road segments. That is
-      the detail that makes turning behave: a driver who needs to turn left three blocks ahead is
-      already paying for the lane changes in its route cost. The cost function adds a penalty per
-      radian of turn, per lane of lateral movement, and a term proportional to how jammed a lane
-      currently is — so drivers route around congestion rather than politely queueing into it.
+      A* searches lanes and the connectors between them. This is the detail that makes turning
+      behave. A driver who needs to be in the left lane three blocks from now has already paid for
+      those lane changes in the cost of its route, so it starts moving over early instead of
+      panicking at the intersection. The cost function charges per radian of turn, per lane of
+      sideways movement, and in proportion to how jammed a lane currently is, which is why traffic
+      spreads onto side streets when the avenue fills up.
     </p>
 
-    <h3>Following: the Intelligent Driver Model</h3>
+    <h3>Following the car ahead</h3>
     <p>
-      Acceleration comes from IDM, using the gap and relative speed to the leader — the standard
-      traffic-flow model, and the reason stop-and-go waves appear on a busy avenue without anything
-      in the code that says "make a wave".
+      Acceleration comes from the Intelligent Driver Model, using the gap and the closing speed to
+      the leader. It's the standard model from traffic flow research, and it's the reason stop-and-go
+      waves show up on a busy avenue when there's nothing in the code that draws a wave.
     </p>
 
-    <h3>Lane changing: MOBIL</h3>
+    <h3>Deciding to change lanes</h3>
     <p>
-      A lane change is accepted only if the total advantage — mine plus a politeness factor times my
-      new follower's loss — clears a threshold, and only if I would not force that follower to brake
-      harder than a safety limit. Plus a small bias toward the kerb lane, so the network self-sorts
-      instead of everyone sitting in the median lane.
+      MOBIL handles this. A change gets accepted if the advantage to me, plus a politeness factor
+      times the loss to whoever ends up behind me, clears a threshold, and only when the move
+      wouldn't force that new follower to brake harder than a safety limit. There's a small pull
+      toward the curb lane on top, so the network sorts itself out instead of everyone sitting in the
+      median.
     </p>
 
-    <h3>Junctions: reservations, not just lights</h3>
+    <h3>Getting through a junction</h3>
     <p>
-      Every junction pre-computes which of its connectors physically conflict — two turning paths
-      whose rails cross. A car approaching a stop line requests a reservation over the connector it
-      wants; the arbiter grants it only when no conflicting reservation is live. Traffic lights sit
-      on top of this as an extra gate: approaches are clustered into two opposing phases using a
-      doubled-angle trick, so a signal plan is derived from the junction's geometry rather than
-      hand-authored per intersection.
+      Each junction works out in advance which of its connectors physically cross each other. A car
+      approaching the stop line asks to reserve the connector it wants, and the arbiter says yes only
+      when nothing conflicting is booked. Traffic lights sit on top as an extra gate. Approaches get
+      clustered into two opposing phases with a doubled-angle trick, which means a signal plan comes
+      out of the junction's shape rather than out of me hand-authoring every intersection.
     </p>
 
-    <h2>Three problems that were harder than they looked</h2>
+    <h2>Three things that were harder than they looked</h2>
 
-    <h3>Roundabouts as a graph rewrite</h3>
+    <h3>Roundabouts</h3>
     <p>
-      A roundabout is not a special vehicle behaviour — it is a <strong>network mutation</strong>.
-      Building one deletes the junction, inserts a ring of nodes, subdivides long spans so each
-      quadratic stays a good circular arc, rewires every arm onto its ring node, and makes the ring
-      edges one-way. After that the existing yielding and reservation logic handles it, because from
-      the simulation's point of view it is just more road. Keeping the physics dumb and the graph
-      smart is what stopped this project from turning into a pile of special cases.
+      A roundabout turned out to be a change to the network, not a change to how cars behave.
+      Building one deletes the junction, drops in a ring of nodes, subdivides any span long enough to
+      stop being a decent circular arc, rewires each arm onto its own ring node, and makes the ring
+      edges one-way. After that the yielding and reservation code handles it, because as far as the
+      simulation is concerned it's just more road. Keeping the vehicle logic simple and putting the
+      cleverness in the graph is what stopped this project turning into a heap of special cases.
     </p>
 
-    <h3>Editing a live network</h3>
+    <h3>Editing a network with cars on it</h3>
     <p>
-      You can upgrade a street to an avenue, split a road with a new junction, or bulldoze the road
-      a car is currently driving on. Rebuilding an edge replaces its <code>Lane</code> objects, so
-      every vehicle holding a reference has to be re-synced onto the new geometry, every affected
-      node's connector set re-synthesised, and every building's kerb attachment re-resolved. Getting
-      that right — instead of leaking ghost cars and orphaned buildings — was most of the work.
+      You can upgrade a street to an avenue, split a road with a new junction, or bulldoze the road a
+      car is driving along right now. Rebuilding an edge replaces its <code>Lane</code> objects, so
+      every vehicle holding a reference has to be moved onto the new geometry, every affected node's
+      connectors have to be rebuilt, and every building's curb attachment has to be resolved again.
+      Getting that right, rather than leaking ghost cars and buildings attached to roads that no
+      longer exist, was most of the work on this project.
     </p>
 
-    <h3>Deadlock, the honest kind</h3>
+    <h3>Deadlock</h3>
     <p>
-      Two failure modes showed up the moment the network got dense. A car stuck at a stop line in
-      the wrong lane would wait forever for a gap that could never come — so it now re-plans a route
-      that starts from the lane it is <em>actually</em> in. And a stalled reservation could hold a
-      junction hostage indefinitely, so reservations expire. Both are cases where the physically
-      correct rule needed an escape hatch to stay playable.
+      Two failure modes turned up as soon as the network got dense. A car stuck at a stop line in the
+      wrong lane would wait forever for a gap that could never appear, so it now re-plans from the
+      lane it's actually sitting in. And a stalled reservation could hold a junction hostage
+      indefinitely, so reservations expire. Both are places where the physically correct rule needed
+      an escape hatch to stay playable, which annoyed me for about a day before I gave in.
     </p>
 
     <h2>The city on top</h2>
     <p>
-      Zoning paints a coarse grid; a cell develops only if it can reach a road within a distance
-      band, which is why buildings line the streets you draw instead of appearing in the middle of a
-      block. A building's address is <code>(edge, direction, lane, t)</code> — a point on a lane —
-      so its residents leave from and return to a specific kerb. Homes generate trips to jobs and
-      shops on a timer, freight runs from industry, buildings level up or get abandoned based on how
-      well they are actually being served, and the day/night cycle drives both the lighting and the
-      rhythm of demand.
+      Zoning paints a coarse grid, and a cell only develops if it can reach a road within a certain
+      distance band. That's why buildings line the streets you drew instead of sprouting in the
+      middle of a block. A building's address is a point on a lane, stored as edge, direction, lane
+      and position along it, so its residents leave from and return to a specific piece of curb.
+      Houses generate trips to jobs and shops on a timer, industry sends out freight, buildings level
+      up or get abandoned depending on how well they're actually being served, and the day/night
+      cycle drives both the lighting and the rhythm of demand.
     </p>
 
     <div class="notecard">
-      <p><strong>Determinism where it counts:</strong> map generation runs on a seeded <code>mulberry32</code> PRNG. Reproducible maps make reproducible bugs.</p>
+      <p>Map generation runs on a seeded <code>mulberry32</code> generator, so a map I can reproduce
+      is a bug I can reproduce.</p>
     </div>
 
-    <h2>Performance notes</h2>
+    <h2>Performance</h2>
     <ul>
-      <li><strong>Fixed 60 Hz simulation, interpolated rendering</strong> — physics never depends on frame rate, and the 2× / 4× speed controls step the sim more times rather than making cars teleport.</li>
-      <li><strong>Geometry is cached, not recomputed.</strong> Lane offsets, road markings, median lines and junction pads are built once per edit and reused every frame.</li>
-      <li><strong>Per-lane vehicle indices</strong> keep leader/follower lookups local, so car-following does not scan the world.</li>
-      <li>The city in the screenshot above — 35 roads, 115 buildings — holds <strong>58–60 fps</strong> with the whole render pipeline on.</li>
+      <li>The simulation steps at a fixed 60 Hz and the renderer interpolates between steps, so physics never depends on frame rate. The 2× and 4× buttons run more steps rather than making cars teleport further.</li>
+      <li>Lane offsets, road markings, median lines and junction pads are built once per edit and reused, instead of being recomputed sixty times a second.</li>
+      <li>Each lane keeps its own index of the vehicles on it, so finding a leader or a follower is local and car-following never scans the world.</li>
+      <li>The city in the screenshot up there, 35 roads and 115 buildings, sits at 58 to 60 fps with everything switched on.</li>
     </ul>
 
     <h2>What I'd do next</h2>
     <ul>
-      <li>Public transport: buses on fixed routes are a good stress test for the reservation system.</li>
-      <li>Adaptive signal timing driven by measured queue length, and a comparison view against the fixed plan.</li>
-      <li>Move routing into a Web Worker — A* is the only thing that can spike a frame.</li>
-      <li>Save/load, so a city worth showing off survives a refresh.</li>
+      <li>Buses on fixed routes. They'd be a good stress test for the reservation system, since they stop in the road and block things.</li>
+      <li>Signal timing that adapts to measured queue length, with a view that compares it against the fixed plan.</li>
+      <li>Move routing into a Web Worker. A* is the only thing here that can spike a frame.</li>
+      <li>Save and load, so a city worth showing survives a refresh.</li>
     </ul>
 
     <div class="cta-row" style="margin-top:36px">
