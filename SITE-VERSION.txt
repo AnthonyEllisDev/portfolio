@@ -1,10 +1,16 @@
-Portfolio site — version 5  (2026-08-18)
+Portfolio site — version 5.1  (2026-08-19)
 
 This is the newest bundle.
 
+New in 5.1:
+  - The space game has its name: Solvane: The Iron Reach. Title card added, used as
+    the feature card on the landing page and as the hero on the project page.
+  - projects/space-game/ renamed to projects/solvane/. The old folder now holds a
+    redirect stub; it is safe to delete it entirely.
+
 New in v5:
-  - Space Game added as the lead project, with its own write-up and screenshots
-    (projects/space-game/)
+  - Solvane added as the lead project, with its own write-up and screenshots
+    (projects/solvane/)
   - "How I got here" timeline on the landing page: work above the line,
     self-taught below it, 2014 to now
   - About section rewritten with the real story, plus a photo
@@ -28,5 +34,5 @@ Carried over from v3/v4:
 Quick check after copying into the repo:
 
     grep -c anthonyellis702 index.html     # must print 0
-    ls projects/space-game/index.html      # must exist
+    ls projects/solvane/index.html         # must exist
     ls test/verify.mjs                     # must exist

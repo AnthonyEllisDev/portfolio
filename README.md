@@ -17,7 +17,7 @@ assets/
   favicon.svg
   img/*.jpg             screenshots of each demo (also used for link previews)
 projects/
-  space-game/index.html case study  →  /projects/space-game/   (GameMaker, no demo)
+  solvane/index.html    case study  →  /projects/solvane/      (GameMaker, no demo)
   galaxy/index.html     case study  →  /projects/galaxy/
   arterial/index.html   case study  →  /projects/arterial/
   aquarium/index.html   case study  →  /projects/aquarium/
