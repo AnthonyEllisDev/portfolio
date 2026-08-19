@@ -12,6 +12,7 @@ Headshot and Old Demos/
 # scrub the address and un-ignore them.
 EMAIL-SETUP.md
 DEPLOY.md
+README.md
 
 # ── Tooling ──────────────────────────────────────────────────────────────
 node_modules/
