@@ -1,3 +1,10 @@
 User-agent: *
 Allow: /
+
+# Keep the résumé out of search results. It still works for anyone who
+# clicks the link on the site; this only asks crawlers not to index it.
+Disallow: /resume.pdf
+Disallow: /resume.docx
+Disallow: /resume-source.html
+
 Sitemap: https://anthonyellis.dev/sitemap.xml
