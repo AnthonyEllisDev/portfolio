@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space Weather — Anthony Ellis</title>
+<meta name="description" content="Live solar wind, interplanetary magnetic field and Kp index from NOAA SWPC, drawn in the browser. No signup, no upload, no account.">
+<meta name="theme-color" content="#070a10">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+/* ── space weather monitor ───────────────────────────────────────────────
+   Everything here draws to canvas by hand. No chart library: the whole point
+   of the page is that the drawing is the work. ------------------------- */
+
+body{padding-bottom:60px}
+
+.sw-head{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:20px;flex-wrap:wrap;padding:34px 0 18px}
+.sw-head h1{font-size:clamp(1.6rem,3.4vw,2.2rem);margin:0 0 6px}
+.sw-head .src{color:var(--faint);font-size:.9rem;margin:0}
+
+/* live / stale / failed pill */
+.status{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);
+  font-size:.74rem;letter-spacing:.13em;text-transform:uppercase;
+  border:1px solid var(--line-hi);border-radius:6px;padding:7px 12px;color:var(--dim)}
+.status .led{width:8px;height:8px;border-radius:50%;background:var(--faint);
+  box-shadow:0 0 8px currentColor}
+.status.ok    {color:var(--good);border-color:rgba(61,220,151,.35)}
+.status.ok .led{background:var(--good)}
+.status.warn  {color:#f5c26b;border-color:rgba(245,194,107,.35)}
+.status.warn .led{background:#f5c26b}
+.status.err   {color:#ff8a7a;border-color:rgba(255,138,122,.4)}
+.status.err .led{background:#ff8a7a}
+@media (prefers-reduced-motion:no-preference){
+  .status.ok .led{animation:pulse 2.4s ease-in-out infinite}
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* headline numbers */
+.readouts{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;
+  grid-template-columns:1fr;margin:6px 0 26px}
+@media (min-width:400px){ .readouts{grid-template-columns:repeat(2,1fr)} }
+@media (min-width:760px){ .readouts{grid-template-columns:repeat(4,1fr)} }
+.ro{background:var(--panel);padding:16px 18px 15px}
+.ro dt{font-family:var(--mono);font-size:.7rem;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--faint);margin:0 0 7px}
+.ro dd{margin:0;font-size:clamp(1.4rem,5vw,1.72rem);line-height:1.05;font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em}
+.ro .unit{font-size:.82rem;color:var(--dim);margin-left:5px;letter-spacing:0}
+.ro .note{display:block;font-size:.79rem;color:var(--faint);margin-top:7px;min-height:1em}
+.ro dd.calm{color:var(--text)}
+.ro dd.lively{color:#8fd3ff}
+.ro dd.storm{color:#ffb86b}
+.ro dd.severe{color:#ff8a7a}
+.ro dd.dash{color:var(--faint)}
+
+/* charts */
+.panels{display:grid;gap:20px;grid-template-columns:1fr}
+@media (min-width:900px){ .panels{grid-template-columns:1fr 1fr} }
+.panel{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
+  padding:18px 18px 14px}
+.panel.wide{grid-column:1/-1}
+.panel h2{font-size:1rem;margin:0 0 3px}
+.panel .sub{font-size:.86rem;color:var(--faint);margin:0 0 14px}
+.panel canvas{display:block;width:100%;height:auto}
+
+/* the local question */
+.verdict{border-left:2px solid var(--accent);background:rgba(77,163,255,.06);
+  border-radius:0 10px 10px 0;padding:18px 22px;margin:26px 0 0}
+.verdict h2{font-size:1.02rem;margin:0 0 8px}
+.verdict p{margin:0;color:#cfdbea}
+.verdict .big{font-size:1.3rem;color:var(--text);display:block;margin-bottom:6px}
+
+.foot{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);
+  color:var(--faint);font-size:.88rem;max-width:74ch}
+.foot a{color:var(--accent)}
+.foot p{margin:0 0 .7em}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/#work">Work</a>
+      <a href="/projects/space-weather/">About this</a>
+      <a href="/#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="sw-head">
+    <div>
+      <h1>Space weather, right now</h1>
+      <p class="src">Solar wind and geomagnetic data from NOAA's Space Weather Prediction Center. Drawn in your browser, refreshed every two minutes.</p>
+    </div>
+    <span class="status" id="status" role="status" aria-live="polite">
+      <span class="led"></span><span id="statusText">Connecting</span>
+    </span>
+  </div>
+
+  <dl class="readouts">
+    <div class="ro">
+      <dt>Solar wind speed</dt>
+      <dd class="dash" id="vSpeed">—<span class="unit">km/s</span></dd>
+      <span class="note" id="nSpeed"></span>
+    </div>
+    <div class="ro">
+      <dt>Proton density</dt>
+      <dd class="dash" id="vDens">—<span class="unit">p/cm³</span></dd>
+      <span class="note" id="nDens"></span>
+    </div>
+    <div class="ro">
+      <dt>IMF B<sub>z</sub></dt>
+      <dd class="dash" id="vBz">—<span class="unit">nT</span></dd>
+      <span class="note" id="nBz"></span>
+    </div>
+    <div class="ro">
+      <dt>Planetary K<sub>p</sub></dt>
+      <dd class="dash" id="vKp">—</dd>
+      <span class="note" id="nKp"></span>
+    </div>
+  </dl>
+
+  <div class="panels">
+    <div class="panel wide">
+      <h2>Solar wind speed</h2>
+      <p class="sub">Last six hours, measured at the L1 point about a million miles upstream. What you see here reaches Earth in roughly 30 to 60 minutes.</p>
+      <canvas id="cSpeed" height="220"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Interplanetary magnetic field, B<sub>z</sub></h2>
+      <p class="sub">Southward (negative) lets the solar wind couple to Earth's field. This is the number that decides whether anything happens.</p>
+      <canvas id="cBz" height="200"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>K<sub>p</sub> index</h2>
+      <p class="sub">Measured for the last 24 hours, forecast for the next 24. Zero is quiet, five is a storm, nine is once a decade.</p>
+      <canvas id="cKp" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <h2>Could you see it from Las Vegas?</h2>
+    <p><span class="big" id="vAurora">Working it out…</span><span id="nAurora"></span></p>
+  </div>
+
+  <div class="foot">
+    <p><strong>Where this comes from.</strong> Every number on this page is fetched directly
+    from <a href="https://www.swpc.noaa.gov/">NOAA SWPC</a> by your browser and drawn here.
+    Nothing is stored, nothing is sent anywhere else, and there is no server of mine in the
+    middle. Because the request goes straight from you to NOAA, NOAA sees it, the same way it
+    would if you opened their site yourself.</p>
+    <p><strong>What it is not.</strong> This is measured solar wind and geomagnetic data, not a
+    radiation reading and not a health measurement. The aurora line below the charts is an
+    estimate from the Kp index, which is a rough guide to how far from the poles the auroral
+    oval reaches, not a forecast for your street.</p>
+    <p><a href="/projects/space-weather/">How this page was built</a> · <a href="/#work">All projects</a></p>
+  </div>
+
+</main>
+
+<script>
+/* ===========================================================================
+   Space weather monitor
+
+   Four NOAA SWPC endpoints, no key, no library, no build step. Charts are
+   drawn by hand to canvas because that is the part worth showing.
+
+   Design notes:
+   - Every fetch is independent. One endpoint failing degrades that panel
+     rather than the page.
+   - SWPC returns arrays-of-arrays with a header row, so parsing is by column
+     name rather than index. The column order has changed before.
+   - Canvas is sized to the element's real width times devicePixelRatio, then
+     scaled, or everything is blurry on a retina screen.
+   ======================================================================== */
+
+const SRC = {
+  plasma: 'https://services.swpc.noaa.gov/products/solar-wind/plasma-6-hour.json',
+  mag:    'https://services.swpc.noaa.gov/products/solar-wind/mag-6-hour.json',
+  kp:     'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json',
+  kpFc:   'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json'
+};
+// ?fixture=1 swaps in recorded sample data for offline layout work.
+if (new URLSearchParams(location.search).has('fixture')) {
+  SRC.plasma='/fixtures/plasma.json'; SRC.mag='/fixtures/mag.json';
+  SRC.kp='/fixtures/kp.json';        SRC.kpFc='/fixtures/kp-forecast.json';
+}
+
+const REFRESH_MS = 120000;
+const $ = id => document.getElementById(id);
+
+/* SWPC hands back [[header…],[row…],…]. Turn it into objects keyed by the
+   header so a reordered column can't silently shift every value. */
+function table(rows){
+  if (!Array.isArray(rows) || rows.length < 2) throw new Error('unexpected shape');
+  const head = rows[0].map(h => String(h).trim().toLowerCase());
+  return rows.slice(1).map(r => Object.fromEntries(head.map((h,i) => [h, r[i]])));
+}
+const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+const parseTime = s => new Date(String(s).replace(' ','T').replace(/(\.\d+)?$/,'Z'));
+
+async function grab(url){
+  const r = await fetch(url, {cache:'no-store'});
+  if (!r.ok) throw new Error(url + ' → HTTP ' + r.status);
+  return table(await r.json());
+}
+
+/* ── canvas helpers ─────────────────────────────────────────────────────── */
+function fit(cv){
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth || cv.parentNode.clientWidth;
+  const h = parseInt(cv.getAttribute('height'), 10);
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  cv.style.height = h + 'px';
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  return {g, w, h};
+}
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function axes(g, w, h, pad, lo, hi, label, divs){
+  divs = divs || 4;
+  g.strokeStyle = css('--line'); g.fillStyle = css('--faint');
+  g.lineWidth = 1; g.font = '11px ui-monospace, monospace';
+  for (let i = 0; i <= divs; i++){
+    const y = Math.round(pad.t + (h - pad.t - pad.b) * i / divs) + .5;
+    g.beginPath(); g.moveTo(pad.l, y); g.lineTo(w - pad.r, y); g.stroke();
+    const v = hi - (hi - lo) * i / divs;
+    g.fillText(label(v), 4, y + 3.5);
+  }
+}
+
+/* ── line chart with a soft fill under it ───────────────────────────────── */
+function line(cv, series, opts){
+  const {g, w, h} = fit(cv);
+  const pad = {l: 46, r: 10, t: 12, b: 18};
+  const vals = series.map(p => p.v).filter(v => v !== null);
+  if (!vals.length){ empty(g, w, h); return; }
+  let lo = opts.lo !== undefined ? opts.lo : Math.min(...vals);
+  let hi = opts.hi !== undefined ? opts.hi : Math.max(...vals);
+  const span = (hi - lo) || 1; lo -= span * .12; hi += span * .12;
+  axes(g, w, h, pad, lo, hi, opts.label || (v => v.toFixed(0)));
+
+  const X = i => pad.l + (w - pad.l - pad.r) * i / Math.max(1, series.length - 1);
+  const Y = v => pad.t + (h - pad.t - pad.b) * (1 - (v - lo) / (hi - lo));
+
+  if (opts.zero !== undefined && opts.zero > lo && opts.zero < hi){
+    const y = Math.round(Y(opts.zero)) + .5;
+    g.save(); g.setLineDash([4,4]); g.strokeStyle = css('--line-hi');
+    g.beginPath(); g.moveTo(pad.l, y); g.lineTo(w - pad.r, y); g.stroke(); g.restore();
+  }
+
+  const grad = g.createLinearGradient(0, pad.t, 0, h - pad.b);
+  grad.addColorStop(0, opts.fill || 'rgba(77,163,255,.26)');
+  grad.addColorStop(1, 'rgba(77,163,255,0)');
+  g.beginPath(); let started = false;
+  series.forEach((p, i) => { if (p.v === null) return;
+    const x = X(i), y = Y(p.v);
+    started ? g.lineTo(x, y) : (g.moveTo(x, y), started = true); });
+  if (started){
+    const lastX = X(series.length - 1);
+    g.lineTo(lastX, h - pad.b); g.lineTo(pad.l, h - pad.b); g.closePath();
+    g.fillStyle = grad; g.fill();
+  }
+
+  g.beginPath(); started = false;
+  series.forEach((p, i) => { if (p.v === null){ started = false; return; }
+    const x = X(i), y = Y(p.v);
+    started ? g.lineTo(x, y) : (g.moveTo(x, y), started = true); });
+  g.strokeStyle = opts.stroke || css('--accent');
+  g.lineWidth = 1.9; g.lineJoin = 'round'; g.stroke();
+
+  const last = [...series].reverse().find(p => p.v !== null);
+  if (last){
+    const i = series.lastIndexOf(last);
+    g.beginPath(); g.arc(X(i), Y(last.v), 3.4, 0, Math.PI * 2);
+    g.fillStyle = opts.stroke || css('--accent'); g.fill();
+  }
+}
+
+/* ── Kp bars: measured solid, forecast hatched ──────────────────────────── */
+function bars(cv, obs, fc){
+  const {g, w, h} = fit(cv);
+  const pad = {l: 26, r: 10, t: 12, b: 26};
+  const all = obs.concat(fc);
+  if (!all.length){ empty(g, w, h); return; }
+  const hi = 9;
+  axes(g, w, h, pad, 0, hi, v => v.toFixed(0), 3);   // 9 / 6 / 3 / 0
+  const bw = (w - pad.l - pad.r) / all.length;
+  const Y = v => pad.t + (h - pad.t - pad.b) * (1 - v / hi);
+
+  all.forEach((p, i) => {
+    const x = pad.l + bw * i, y = Y(p.v), bh = (h - pad.b) - y;
+    const c = p.v >= 7 ? '#ff8a7a' : p.v >= 5 ? '#ffb86b' : p.v >= 4 ? '#8fd3ff' : css('--accent');
+    g.fillStyle = c;
+    g.globalAlpha = p.forecast ? .28 : .92;
+    g.fillRect(Math.round(x) + 1, Math.round(y), Math.max(1, Math.floor(bw) - 2), Math.max(1, bh));
+    g.globalAlpha = 1;
+    if (p.forecast){
+      g.strokeStyle = c; g.globalAlpha = .5; g.lineWidth = 1;
+      g.strokeRect(Math.round(x) + 1.5, Math.round(y) + .5, Math.max(1, Math.floor(bw) - 3), Math.max(1, bh));
+      g.globalAlpha = 1;
+    }
+  });
+
+  // storm threshold
+  const y5 = Math.round(Y(5)) + .5;
+  g.save(); g.setLineDash([3,4]); g.strokeStyle = 'rgba(255,184,107,.5)';
+  g.beginPath(); g.moveTo(pad.l, y5); g.lineTo(w - pad.r, y5); g.stroke(); g.restore();
+
+  g.fillStyle = css('--faint'); g.font = '11px ui-monospace, monospace';
+  g.fillText('measured', pad.l, h - 8);
+  const fcX = pad.l + bw * obs.length;
+  if (fc.length) g.fillText('forecast', Math.min(fcX, w - 62), h - 8);
+}
+
+function empty(g, w, h){
+  g.fillStyle = css('--faint'); g.font = '12px ui-monospace, monospace';
+  g.textAlign = 'center'; g.fillText('no data', w / 2, h / 2); g.textAlign = 'left';
+}
+
+/* ── interpretation ─────────────────────────────────────────────────────── */
+function setStatus(kind, text){
+  const el = $('status'); el.className = 'status ' + kind; $('statusText').textContent = text;
+}
+function put(id, value, unit, cls, note){
+  const dd = $(id);
+  dd.className = cls;
+  dd.innerHTML = value + (unit ? '<span class="unit">' + unit + '</span>' : '');
+  if (note !== undefined) $(id.replace('v', 'n')).textContent = note;
+}
+const speedWord = v => v < 350 ? 'slow' : v < 500 ? 'typical' : v < 650 ? 'fast' : 'very fast';
+const kpClass  = k => k >= 7 ? 'severe' : k >= 5 ? 'storm' : k >= 4 ? 'lively' : 'calm';
+
+/* Rough equatorward edge of the auroral oval by Kp, in degrees of geomagnetic
+   latitude. Standard NOAA-ish table; deliberately coarse, and labelled as
+   such on the page. */
+const OVAL = {0:66.5, 1:64.5, 2:62.4, 3:60.4, 4:58.3, 5:56.3, 6:54.2, 7:52.2, 8:50.1, 9:48.1};
+const VEGAS_GEOMAG = 43.5;   // Las Vegas sits near 43.5° geomagnetic latitude
+
+function aurora(kp){
+  const edge = OVAL[Math.min(9, Math.max(0, Math.round(kp)))];
+  const gap = edge - VEGAS_GEOMAG;
+  if (gap <= 0)
+    return ['Yes. Go outside.', 'At Kp ' + kp.toFixed(1) + ' the auroral oval reaches about ' + edge.toFixed(0) + '° geomagnetic latitude, which is past Las Vegas. This effectively never happens.'];
+  if (gap <= 4)
+    return ['Maybe, low on the northern horizon.', 'The oval is down to roughly ' + edge.toFixed(0) + '° geomagnetic latitude, about ' + gap.toFixed(0) + '° north of here. Worth driving away from the Strip and looking north.'];
+  if (kp >= 5)
+    return ['No, but it is a storm somewhere.', 'Kp ' + kp.toFixed(1) + ' puts the oval near ' + edge.toFixed(0) + '° geomagnetic latitude, still about ' + gap.toFixed(0) + '° north of Las Vegas. Good night for Montana.'];
+  return ['No.', 'Kp ' + kp.toFixed(1) + ' keeps the auroral oval around ' + edge.toFixed(0) + '° geomagnetic latitude, roughly ' + gap.toFixed(0) + '° north of here. Normal, and the usual answer.'];
+}
+
+/* ── load ───────────────────────────────────────────────────────────────── */
+let lastGood = null;
+
+async function load(){
+  const jobs = await Promise.allSettled([grab(SRC.plasma), grab(SRC.mag), grab(SRC.kp), grab(SRC.kpFc)]);
+  const [plasma, mag, kp, kpFc] = jobs;
+  let failures = 0;
+
+  if (plasma.status === 'fulfilled'){
+    const rows = plasma.value.map(r => ({t: parseTime(r.time_tag), v: num(r.speed)}));
+    const dens = plasma.value.map(r => ({t: parseTime(r.time_tag), v: num(r.density)}));
+    const s = [...rows].reverse().find(p => p.v !== null);
+    const d = [...dens].reverse().find(p => p.v !== null);
+    if (s) put('vSpeed', s.v.toFixed(0), 'km/s', s.v > 600 ? 'lively' : 'calm', speedWord(s.v));
+    if (d) put('vDens', d.v.toFixed(1), 'p/cm³', 'calm', d.v > 10 ? 'dense, compressed' : 'ordinary');
+    line($('cSpeed'), rows, {label: v => v.toFixed(0)});
+  } else { failures++; }
+
+  if (mag.status === 'fulfilled'){
+    const bz = mag.value.map(r => ({t: parseTime(r.time_tag), v: num(r.bz_gsm)}));
+    const b = [...bz].reverse().find(p => p.v !== null);
+    if (b) put('vBz', (b.v > 0 ? '+' : '') + b.v.toFixed(1), 'nT',
+               b.v <= -8 ? 'storm' : b.v < 0 ? 'lively' : 'calm',
+               b.v < 0 ? 'southward, coupling' : 'northward, shut');
+    line($('cBz'), bz, {zero: 0, stroke: '#8fd3ff', fill: 'rgba(143,211,255,.22)',
+                        label: v => v.toFixed(0)});
+  } else { failures++; }
+
+  let kpNow = null;
+  const obs = [], fc = [];
+  if (kp.status === 'fulfilled'){
+    kp.value.slice(-8).forEach(r => {
+      const v = num(r.kp ?? r.kp_index ?? r.estimated_kp);
+      if (v !== null) obs.push({v, forecast: false});
+    });
+    if (obs.length) kpNow = obs[obs.length - 1].v;
+  } else { failures++; }
+  if (kpFc.status === 'fulfilled'){
+    kpFc.value.slice(0, 8).forEach(r => {
+      const v = num(r.kp ?? r.kp_index);
+      if (v !== null) fc.push({v, forecast: true});
+    });
+  } else { failures++; }
+  bars($('cKp'), obs, fc);
+
+  if (kpNow !== null){
+    put('vKp', kpNow.toFixed(1), '', kpClass(kpNow),
+        kpNow >= 5 ? 'geomagnetic storm' : kpNow >= 4 ? 'unsettled' : 'quiet');
+    const [head, detail] = aurora(kpNow);
+    $('vAurora').textContent = head; $('nAurora').textContent = detail;
+  } else {
+    $('vAurora').textContent = 'Kp unavailable.';
+    $('nAurora').textContent = 'The planetary K index feed did not answer, so there is nothing honest to say here.';
+  }
+
+  const when = new Date();
+  if (failures === 0){ lastGood = when; setStatus('ok', 'Live · ' + when.toLocaleTimeString()); }
+  else if (failures < 4){ setStatus('warn', failures + ' feed' + (failures > 1 ? 's' : '') + ' down'); }
+  else {
+    setStatus('err', 'NOAA unreachable');
+    $('vAurora').textContent = 'No data.';
+    $('nAurora').textContent = 'Could not reach NOAA SWPC. That is usually their maintenance window or your network, not a fault on this page. It retries every two minutes.';
+  }
+}
+
+let redrawTimer;
+addEventListener('resize', () => { clearTimeout(redrawTimer); redrawTimer = setTimeout(load, 220); });
+load();
+setInterval(load, REFRESH_MS);
+</script>
+</body>
+</html>

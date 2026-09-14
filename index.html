@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Anthony Ellis — Software Engineer</title>
+<!-- v2 MOCKUP. Not the live site. -->
 <meta name="description" content="Self-taught engineer in Las Vegas. Nine years on Solvane: The Iron Reach, a GameMaker space game, plus three browser simulations: a procedural galaxy, a city traffic sim and 4,000 flocking fish.">
 <link rel="canonical" href="https://anthonyellis.dev/">
 <meta name="theme-color" content="#070a10">
@@ -22,6 +23,84 @@
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/css/site.css">
 </head>
+
+<style>
+/* ── v2 additions only. Everything else is the existing site.css. ─────────
+   Three structural ideas: demos you can play without leaving the page, the
+   write-ups promoted to a section of their own, and one honest line about
+   what these things actually are. */
+
+/* a demo that runs in the page. Poster first, iframe only on click, so three
+   canvas simulations don't all boot at once on load. */
+.playable{
+  position:relative; border:1px solid var(--line); border-radius:var(--radius);
+  overflow:hidden; background:#05070c; aspect-ratio:16/9;
+}
+.playable img{width:100%;height:100%;object-fit:cover;display:block}
+.playable iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.playable .start{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:12px;
+  background:linear-gradient(180deg, rgba(4,7,13,.35), rgba(4,7,13,.78));
+  border:0; width:100%; cursor:pointer; color:var(--text);
+  font-family:var(--sans); font-size:1rem; transition:background .18s;
+}
+.playable .start:hover{background:linear-gradient(180deg, rgba(4,7,13,.2), rgba(4,7,13,.66))}
+.playable .start .disc{
+  width:60px;height:60px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(77,163,255,.16); border:1px solid var(--accent);
+  box-shadow:0 0 26px rgba(77,163,255,.28);
+}
+.playable .start .disc::after{
+  content:""; width:0;height:0; margin-left:4px;
+  border-left:15px solid var(--accent);
+  border-top:10px solid transparent; border-bottom:10px solid transparent;
+}
+.playable .start b{font-weight:600}
+.playable .start small{color:var(--dim);font-size:.86rem}
+.playable.live .start{display:none}
+
+/* one project per row, media and text alternating sides. Equal media size on
+   every row: the asymmetry comes from the alternation, not from ragged sizes. */
+.row{padding:36px 0;border-top:1px solid var(--line)}
+.row .head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.row h3{margin:0;font-size:1.3rem}
+.row .kicker{margin:0}
+.row .meta{display:grid;grid-template-columns:1.5fr 1fr;gap:26px;align-items:start;margin-top:18px}
+.row .blurb{color:var(--dim);margin:0;max-width:62ch}
+.row .stack{font-size:.9rem;color:var(--faint);margin:0 0 12px}
+.row .links{display:flex;gap:10px;flex-wrap:wrap}
+
+.clientside{
+  display:flex;gap:10px;align-items:flex-start;
+  border-left:2px solid var(--good); background:rgba(61,220,151,.05);
+  border-radius:0 8px 8px 0; padding:13px 16px; margin:24px 0 0;
+  color:var(--dim); font-size:.93rem; max-width:70ch;
+}
+.clientside b{color:var(--text);font-weight:600}
+
+/* the pinned nav bug, fixed here: without wrap the last link drags the whole
+   document sideways on anything narrower than ~400px, and v2 adds a fifth link. */
+.navlinks{flex-wrap:wrap;justify-content:flex-end;row-gap:4px}
+@media (max-width:430px){ .navlinks{gap:16px} .navlinks a{font-size:.88rem} }
+
+/* writing index */
+.posts{display:grid;gap:0;margin-top:26px;border-top:1px solid var(--line)}
+.post{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:baseline;
+  padding:17px 2px;border-bottom:1px solid var(--line);text-decoration:none}
+.post:hover{background:rgba(255,255,255,.018)}
+.post h3{margin:0 0 4px;font-size:1.06rem;color:var(--text)}
+.post p{margin:0;color:var(--dim);font-size:.93rem;max-width:66ch}
+.post .len{font-family:var(--mono);font-size:.76rem;color:var(--faint);white-space:nowrap}
+
+@media (max-width:820px){
+  .row .meta{grid-template-columns:1fr;gap:16px}
+  .playable{aspect-ratio:4/3}
+  .post{grid-template-columns:1fr}
+  .post .len{margin-top:6px}
+}
+</style>
+</head>
 <body>
 <a class="skip" href="#work">Skip to projects</a>
 
@@ -31,6 +110,7 @@
     <nav class="navlinks" aria-label="Primary">
       <a href="#work">Work</a>
       <a href="#path" class="hide-sm">Path</a>
+      <a href="#writing">Writing</a>
       <a href="#about">About</a>
       <a href="#contact">Contact</a>
       <a href="https://github.com/AnthonyEllisDev">GitHub</a>
@@ -51,146 +131,149 @@
     </p>
     <div class="cta-row">
       <a class="btn btn-primary" href="#work">See the projects <span class="arrow" aria-hidden="true">→</span></a>
-      <a class="btn" href="#path">How I got here</a>
+      <a class="btn" href="#writing">Read the write-ups</a>
       <a class="btn" href="mailto:anthony@anthonyellis.dev">Email me</a>
     </div>
+    <p class="clientside">
+      <span aria-hidden="true">▪</span>
+      <span><b>Everything on this page runs in your browser.</b> No signup, no upload, no account,
+      nothing sent anywhere. The three simulations below start when you click them and stop when
+      you close the tab.</span>
+    </p>
   </div>
 
   <!-- ===================================================== work ========= -->
   <section id="work" class="wrap">
     <div class="section-head">
       <h2>Selected work</h2>
-      <span class="count">04 projects</span>
+      <span class="count">05 projects</span>
     </div>
 
-    <div class="projects">
-
-      <!-- --------------------------------------------------- solvane ----- -->
-      <article class="card feature">
-        <a class="shot" href="/projects/solvane/">
-          <span class="badge-wip">In development · since 2016</span>
-          <img src="/assets/img/solvane-card.jpg"
-               alt="Solvane: The Iron Reach title card — the game's name in pixel-art type over a starfield, with a blue banded ice planet at lower right."
-               width="1400" height="600" fetchpriority="high">
-        </a>
-        <div class="body">
-          <p class="kicker">GameMaker · GML · Procedural generation</p>
-          <h3><a href="/projects/solvane/">Solvane: The Iron Reach</a></h3>
-          <p class="blurb">
-            In August 2016 No Man's Sky launched badly and I told my friends on Discord that
-            I could probably make something with that much depth in GameMaker. I was wrong
-            about how hard it would be, and I've been working on it ever since. An infinite
-            procedurally generated galaxy you mine, build factories in, defend, and fly
-            through in a ship you designed. It's headed for Steam.
-          </p>
-          <ul class="chips">
-            <li class="chip">GameMaker Studio</li>
-            <li class="chip">GML</li>
-            <li class="chip">Chunked world streaming</li>
-            <li class="chip">Shaders</li>
-            <li class="chip">9 years of evenings</li>
-          </ul>
-          <div class="links">
-            <a class="btn btn-primary" href="/projects/solvane/">Read the write-up <span class="arrow" aria-hidden="true">→</span></a>
-          </div>
+    <article class="card feature">
+      <a class="shot" href="/projects/solvane/">
+        <span class="badge-wip">In development · since 2016</span>
+        <img src="/assets/img/solvane-card.jpg"
+             alt="Solvane: The Iron Reach title card — the game's name in pixel-art type over a starfield, with a blue banded ice planet at lower right."
+             width="1400" height="600" fetchpriority="high">
+      </a>
+      <div class="body">
+        <p class="kicker">GameMaker · GML · Procedural generation</p>
+        <h3><a href="/projects/solvane/">Solvane: The Iron Reach</a></h3>
+        <p class="blurb">
+          In August 2016 No Man's Sky launched badly and I told my friends on Discord that
+          I could probably make something with that much depth in GameMaker. I was wrong
+          about how hard it would be, and I've been working on it ever since. An infinite
+          procedurally generated galaxy you mine, build factories in, defend, and fly
+          through in a ship you designed. Now on Steam, aiming at 2027.
+        </p>
+        <ul class="chips">
+          <li class="chip">GameMaker Studio</li>
+          <li class="chip">GML</li>
+          <li class="chip">Chunked world streaming</li>
+          <li class="chip">Shaders</li>
+          <li class="chip">9 years of evenings</li>
+        </ul>
+        <div class="links">
+          <a class="btn btn-primary" href="/projects/solvane/">Read the write-up <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn" href="https://store.steampowered.com/app/5226950/Solvane_The_Iron_Reach/">Wishlist on Steam</a>
         </div>
-      </article>
+      </div>
+    </article>
+
+    <div class="subhead" style="margin-top:42px">
+      <h3>Three you can play right here</h3>
+      <span class="note">Built over about a month of evenings in mid-2026. Click one and it starts in the page. A mouse and keyboard help.</span>
     </div>
 
-    <div class="subhead">
-      <h3>Browser demos</h3>
-      <span class="note">Three simulations, built over about a month of evenings in mid-2026, so there'd be something you can actually click.</span>
-    </div>
+    <div class="rows">
 
-    <div class="projects trio">
-
-      <!-- ---------------------------------------------------- galaxy ----- -->
-      <article class="card">
-        <a class="shot" href="/projects/galaxy/">
-          <img src="/assets/img/galaxy.jpg"
-               alt="A spiral galaxy of 160,000 stars rendered as a glowing point cloud."
-               width="1200" height="749" loading="lazy">
-        </a>
-        <div class="body">
-          <p class="kicker">Procedural generation · WebGL</p>
-          <h3><a href="/projects/galaxy/">Procedural Galaxy Generator</a></h3>
-          <p class="blurb">
-            Type a seed and get a galaxy. Type it on another machine and get the same one,
+      <article class="row">
+        <div class="head"><h3><a href="/projects/galaxy/">Procedural Galaxy Generator</a></h3><p class="kicker">Procedural generation · WebGL</p></div>
+        <div class="playable" data-src="/demos/galaxy.html">
+            <img src="/assets/img/galaxy.jpg" alt="A spiral galaxy of 160,000 stars rendered as a glowing point cloud." loading="lazy">
+            <button class="start" type="button"><span class="disc"></span><b>Run the galaxy</b><small>WebGL · starts in this page</small></button>
+          </div>
+        <div class="meta">
+          <p class="blurb">Type a seed and get a galaxy. Type it on another machine and get the same one,
             down to the mountains on a particular planet, because nothing is stored. A
-            quarter of a million stars in a single draw call.
-          </p>
-          <ul class="chips">
-            <li class="chip">three.js</li>
-            <li class="chip">GLSL</li>
-            <li class="chip">Web Worker</li>
-          </ul>
-          <div class="links">
-            <a class="btn btn-primary" href="/demos/galaxy.html">Launch <span class="arrow" aria-hidden="true">→</span></a>
-            <a class="btn" href="/projects/galaxy/">Write-up</a>
+            quarter of a million stars in a single draw call.</p>
+          <div>
+            <p class="stack">three.js · GLSL · Web Worker</p>
+            <div class="links"><a class="btn" href="/projects/galaxy/">How it works</a>
+            <a class="btn" href="/demos/galaxy.html">Open full screen</a></div>
           </div>
         </div>
       </article>
 
-      <!-- -------------------------------------------------- arterial ----- -->
-      <article class="card">
-        <a class="shot" href="/projects/arterial/">
-          <img src="/assets/img/arterial.jpg"
-               alt="Top-down simulated city at dusk with lane markings, zoning colors and cars queued at signals."
-               width="1200" height="750" loading="lazy">
-        </a>
-        <div class="body">
-          <p class="kicker">Agent simulation · Graphs</p>
-          <h3><a href="/projects/arterial/">Arterial</a></h3>
-          <p class="blurb">
-            Draw roads, zone land, watch a city grow along them and then jam. Every car
+      <article class="row">
+        <div class="head"><h3><a href="/projects/arterial/">Arterial</a></h3><p class="kicker">Agent simulation · Graphs</p></div>
+        <div class="playable" data-src="/demos/arterial.html">
+            <img src="/assets/img/arterial.jpg" alt="Top-down simulated city at dusk with lane markings, zoning colors and cars queued at signals." loading="lazy">
+            <button class="start" type="button"><span class="disc"></span><b>Run the city</b><small>Canvas 2D · starts in this page</small></button>
+          </div>
+        <div class="meta">
+          <p class="blurb">Draw roads, zone land, watch a city grow along them and then jam. Every car
             routes itself and follows the one ahead using models out of the traffic-flow
-            literature, so congestion is measured rather than assigned.
-          </p>
-          <ul class="chips">
-            <li class="chip">Canvas 2D</li>
-            <li class="chip">IDM + MOBIL</li>
-            <li class="chip">A*</li>
-          </ul>
-          <div class="links">
-            <a class="btn btn-primary" href="/demos/arterial.html">Launch <span class="arrow" aria-hidden="true">→</span></a>
-            <a class="btn" href="/projects/arterial/">Write-up</a>
+            literature, so congestion is measured rather than assigned.</p>
+          <div>
+            <p class="stack">Canvas 2D · IDM + MOBIL · A*</p>
+            <div class="links"><a class="btn" href="/projects/arterial/">How it works</a>
+            <a class="btn" href="/demos/arterial.html">Open full screen</a></div>
           </div>
         </div>
       </article>
 
-      <!-- -------------------------------------------------- aquarium ----- -->
-      <article class="card">
-        <a class="shot" href="/projects/aquarium/">
-          <img src="/assets/img/aquarium.jpg"
-               alt="Hundreds of small glowing fish flocking above a sculpted sand bed lit by light rays."
-               width="1200" height="750" loading="lazy">
-        </a>
-        <div class="body">
-          <p class="kicker">Flocking · Cellular automata</p>
-          <h3><a href="/projects/aquarium/">Aquarium Sandbox</a></h3>
-          <p class="blurb">
-            Four thousand fish and a bed of sand you can dig while they swim over it. The
+      <article class="row">
+        <div class="head"><h3><a href="/projects/aquarium/">Aquarium Sandbox</a></h3><p class="kicker">Flocking · Cellular automata</p></div>
+        <div class="playable" data-src="/demos/aquarium.html">
+            <img src="/assets/img/aquarium.jpg" alt="Hundreds of small glowing fish flocking above a sculpted sand bed lit by light rays." loading="lazy">
+            <button class="start" type="button"><span class="disc"></span><b>Run the tank</b><small>Canvas 2D · starts in this page</small></button>
+          </div>
+        <div class="meta">
+          <p class="blurb">Four thousand fish and a bed of sand you can dig while they swim over it. The
             fish were the easy part; getting from three hundred to four thousand meant
-            throwing out the obvious data structures.
-          </p>
-          <ul class="chips">
-            <li class="chip">Canvas 2D</li>
-            <li class="chip">Spatial hash</li>
-            <li class="chip">Typed arrays</li>
-          </ul>
-          <div class="links">
-            <a class="btn btn-primary" href="/demos/aquarium.html">Launch <span class="arrow" aria-hidden="true">→</span></a>
-            <a class="btn" href="/projects/aquarium/">Write-up</a>
+            throwing out the obvious data structures.</p>
+          <div>
+            <p class="stack">Canvas 2D · Spatial hash · Typed arrays</p>
+            <div class="links"><a class="btn" href="/projects/aquarium/">How it works</a>
+            <a class="btn" href="/demos/aquarium.html">Open full screen</a></div>
           </div>
         </div>
       </article>
 
     </div>
 
-    <p class="caption" style="margin-top:18px">All three want a mouse and a keyboard, so a desktop browser is the better place to open them.</p>
+    <div class="subhead" style="margin-top:46px">
+      <h3>Live data</h3>
+      <span class="note">Not a simulation. Real measurements, fetched from NOAA and drawn as they arrive.</span>
+    </div>
+
+    <div class="rows">
+      <article class="row">
+        <div class="head"><h3><a href="/projects/space-weather/">Space Weather Monitor</a></h3><p class="kicker">Live data · Canvas</p></div>
+        <div class="playable" data-src="/demos/space-weather.html">
+          <img src="/assets/img/space-weather.jpg" alt="A dark dashboard showing solar wind speed, magnetic field and K index charts." loading="lazy">
+          <button class="start" type="button"><span class="disc"></span><b>Open the monitor</b><small>Live NOAA data · starts in this page</small></button>
+        </div>
+        <div class="meta">
+          <p class="blurb">
+            Solar wind speed, proton density, the interplanetary magnetic field and the planetary
+            K index, straight from NOAA and drawn to canvas without a chart library. It ends by
+            answering whether the aurora is visible from Las Vegas, which it almost never is.
+          </p>
+          <div>
+            <p class="stack">Canvas 2D · NOAA SWPC · No dependencies</p>
+            <div class="links">
+              <a class="btn" href="/projects/space-weather/">How it works</a>
+              <a class="btn" href="/demos/space-weather.html">Open full screen</a>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
   </section>
 
-  <!-- ==================================================== path ========== -->
+<!-- ==================================================== path ========== -->
   <section id="path" class="wrap">
     <div class="section-head">
       <h2>How I got here</h2>
@@ -332,7 +415,60 @@
     <p class="rail-hint">Drag or scroll sideways to move through it →</p>
   </section>
 
-  <!-- ==================================================== about ========= -->
+  
+  <!-- ================================================== writing ========= -->
+  <section id="writing" class="wrap">
+    <div class="section-head">
+      <h2>Write-ups</h2>
+      <span class="count">05 pieces</span>
+    </div>
+    <div class="prose">
+      <p>
+        Each project has a longer piece behind it about how it actually works and what went
+        wrong on the way. These are the parts a screenshot can't show.
+      </p>
+    </div>
+
+    <div class="posts">
+      <a class="post" href="/projects/solvane/">
+        <span>
+          <h3>Nine years on one game</h3>
+          <p>A chunk system written three times, what nine months away does to a codebase, and why I kept coming back.</p>
+        </span>
+        <span class="len">Solvane</span>
+      </a>
+      <a class="post" href="/projects/galaxy/">
+        <span>
+          <h3>A quarter of a million stars in one draw call</h3>
+          <p>Seed chains, sub-pixel dimming in a vertex shader, and a worker that has to agree with the main thread bit for bit.</p>
+        </span>
+        <span class="len">Galaxy · 1,500 words</span>
+      </a>
+      <a class="post" href="/projects/arterial/">
+        <span>
+          <h3>Making a city jam on purpose</h3>
+          <p>IDM car-following, MOBIL lane changes, A* over lane space, and junctions that arbitrate by reservation.</p>
+        </span>
+        <span class="len">Arterial · 1,600 words</span>
+      </a>
+      <a class="post" href="/projects/space-weather/">
+        <span>
+          <h3>Parsing by name, not by position</h3>
+          <p>Four NOAA feeds that fail one panel at a time, canvas that stays sharp on a retina screen, and why a loud failure beats a plausible one.</p>
+        </span>
+        <span class="len">Space weather</span>
+      </a>
+      <a class="post" href="/projects/aquarium/">
+        <span>
+          <h3>Three hundred fish to four thousand</h3>
+          <p>The spatial hash, a structure-of-arrays pool with a free list, and why the sand scan direction alternates every row.</p>
+        </span>
+        <span class="len">Aquarium · 1,100 words</span>
+      </a>
+    </div>
+  </section>
+
+<!-- ==================================================== about ========= -->
   <section id="about" class="wrap">
     <div class="section-head"><h2>About</h2></div>
 
@@ -389,6 +525,7 @@
     </ul>
   </section>
 
+  
   <!-- ================================================== contact ========= -->
   <section id="contact" class="wrap">
     <div class="section-head"><h2>Contact</h2></div>
@@ -412,5 +549,20 @@
 </footer>
 
 <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+
+<script>
+// Click to run. Nothing boots until asked, so three canvas sims don't fight
+// over the first frame of the page.
+document.querySelectorAll('.playable').forEach(box => {
+  box.querySelector('.start').addEventListener('click', () => {
+    const f = document.createElement('iframe');
+    f.src = box.dataset.src;
+    f.title = box.querySelector('img').alt;
+    f.setAttribute('allow','fullscreen');
+    box.appendChild(f);
+    box.classList.add('live');
+  }, {once:true});
+});
+</script>
 </body>
 </html>

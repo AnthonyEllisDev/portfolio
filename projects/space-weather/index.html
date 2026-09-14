@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space Weather Monitor — Anthony Ellis</title>
+<meta name="description" content="Four NOAA SWPC feeds, parsed by column name, drawn to canvas by hand. Notes on failing one panel at a time, device pixel ratio, and saying no honestly.">
+<link rel="canonical" href="https://anthonyellis.dev/projects/space-weather/">
+<meta name="theme-color" content="#070a10">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="anthonyellis.dev">
+<meta property="og:title" content="Space Weather Monitor">
+<meta property="og:description" content="Live solar wind and geomagnetic data, drawn without a chart library.">
+<meta property="og:url" content="https://anthonyellis.dev/projects/space-weather/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/#work">Work</a>
+      <a href="/#path" class="hide-sm">Path</a>
+      <a href="/#about">About</a>
+      <a href="/#contact">Contact</a>
+      <a href="https://github.com/AnthonyEllisDev">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="case-hero">
+    <a class="backlink" href="/#work">← All projects</a>
+    <p class="eyebrow">Live data · Canvas</p>
+    <h1>Space Weather Monitor</h1>
+    <p class="lede">
+      Four NOAA feeds, no chart library, no build step. Solar wind speed, proton density,
+      the interplanetary magnetic field and the planetary K index, drawn to canvas as they
+      arrive.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/demos/space-weather.html">Open it <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="https://github.com/AnthonyEllisDev/portfolio/blob/main/demos/space-weather.html">View source</a>
+    </div>
+  </div>
+
+  <dl class="factgrid">
+    <div class="fact"><dt>Role</dt><dd>Sole developer</dd></div>
+    <div class="fact"><dt>Stack</dt><dd>Vanilla JS · Canvas 2D</dd></div>
+    <div class="fact"><dt>Data</dt><dd>NOAA SWPC, four endpoints</dd></div>
+    <div class="fact"><dt>Refresh</dt><dd>Every two minutes</dd></div>
+    <div class="fact"><dt>Dependencies</dt><dd>None</dd></div>
+  </dl>
+
+  <article class="case">
+
+    <h2>What it shows</h2>
+    <p>
+      Everything on the page comes from the Space Weather Prediction Center. The solar wind
+      readings are taken at the L1 Lagrange point, roughly a million miles upstream of Earth,
+      which is why the charts are a preview: what the spacecraft sees now reaches us in about
+      thirty to sixty minutes.
+    </p>
+    <p>
+      The number that actually matters is B<sub>z</sub>, the north-south component of the
+      interplanetary magnetic field. When it points south it can connect with Earth's field and
+      pour energy in. When it points north, almost nothing happens no matter how fast the wind
+      is blowing. Speed gets the headlines; B<sub>z</sub> decides the outcome.
+    </p>
+
+    <h2>Parsing by name, not by position</h2>
+    <p>
+      SWPC returns arrays of arrays with a header row, like a CSV that took a wrong turn:
+    </p>
+    <ul>
+      <li><code>[["time_tag","density","speed","temperature"], ["2026-09-13 22:58:00.000", "4.51", "412.3", "61000"], …]</code></li>
+    </ul>
+    <p>
+      The tempting thing is to read <code>row[2]</code> for speed and move on. The problem is
+      that if NOAA ever reorders the columns, that code doesn't crash. It quietly starts
+      plotting temperature as speed, and the chart still looks like a chart. So the header row
+      is turned into keys first and every value is looked up by name. A renamed column shows up
+      as a missing reading, which is visible, instead of a wrong reading, which isn't.
+    </p>
+
+    <div class="notecard">
+      <p>The general rule this is a case of: when you can choose between a failure that is
+      loud and a failure that is plausible, take the loud one.</p>
+    </div>
+
+    <h2>Failing one panel at a time</h2>
+    <p>
+      The four feeds are fetched with <code>Promise.allSettled</code> rather than
+      <code>Promise.all</code>. With <code>all</code>, one endpoint having a bad afternoon takes
+      down the whole page. With <code>allSettled</code>, each panel renders if its own data
+      arrived and reports "no data" if it didn't, and the status pill in the corner counts how
+      many feeds are missing.
+    </p>
+    <p>
+      If everything fails, the page says NOAA is unreachable and leaves the readings as dashes.
+      It does not fall back to cached numbers or sample data. A dashboard showing stale values
+      with a confident live indicator is worse than one admitting it knows nothing.
+    </p>
+
+    <h2>Drawing it</h2>
+    <p>
+      The charts are hand-drawn to canvas. That is a deliberate choice rather than stubbornness:
+      importing a charting library would have been faster, and it would also have meant the most
+      visible part of the page was somebody else's work.
+    </p>
+    <ul>
+      <li>Canvas is sized to its CSS width multiplied by <code>devicePixelRatio</code>, then the
+        context is scaled back down. Skip that and every line is soft on any modern screen.</li>
+      <li>The area fill under each line is a vertical gradient from the line colour to fully
+        transparent, so the chart reads as depth rather than as a solid block.</li>
+      <li>Gaps in the data break the path instead of drawing a straight line across the hole.
+        Interpolating across missing readings invents data.</li>
+      <li>Forecast K<sub>p</sub> bars are drawn at lower opacity with an outline; measured bars
+        are solid. The two are never the same thing and should never look the same.</li>
+    </ul>
+
+    <h2>Saying no honestly</h2>
+    <p>
+      The page ends by answering whether the aurora is visible from Las Vegas. The answer is
+      almost always no, and it says so plainly rather than hedging.
+    </p>
+    <p>
+      It works from a coarse table mapping K<sub>p</sub> to the equatorward edge of the auroral
+      oval in geomagnetic latitude, compared against Las Vegas at about 43.5°. That is an
+      estimate and the page labels it as one. It would have been easy to dress this up as a
+      forecast, and several sites do. The difference between a measurement and a model is worth
+      more than the extra confidence.
+    </p>
+
+    <div class="tryit">
+      <h4>Try this</h4>
+      <p>Open the page and watch B<sub>z</sub> rather than the speed. Most of the time it
+      oscillates gently either side of zero and nothing happens. If it drops below about
+      &minus;10 nT and stays there, check the K<sub>p</sub> panel an hour later and watch the
+      bars climb.</p>
+    </div>
+
+    <h2>What I'd do next</h2>
+    <ul>
+      <li>The auroral oval as an actual drawn shape on a globe, using NOAA's OVATION grid instead of a lookup table.</li>
+      <li>GOES X-ray flux, so solar flares appear as they happen rather than as an aftermath.</li>
+      <li>A quiet browser notification when B<sub>z</sub> goes sharply south, which is the only time any of this is worth being told about.</li>
+    </ul>
+
+    <div class="cta-row" style="margin-top:36px">
+      <a class="btn btn-primary" href="/demos/space-weather.html">Open the monitor <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="mailto:anthony@anthonyellis.dev">Ask me about it</a>
+    </div>
+
+    <nav class="pager">
+      <a href="/projects/aquarium/">← Aquarium &amp; cellular automata</a>
+      <a href="/#work">All projects →</a>
+    </nav>
+  </article>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© <span class="yr">2026</span> Anthony Ellis</span>
+    <span><a href="/#work">All projects</a></span>
+  </div>
+</footer>
+
+<script>document.querySelectorAll('.yr').forEach(e => e.textContent = new Date().getFullYear());</script>
+</body>
+</html>

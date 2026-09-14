@@ -95,7 +95,9 @@ button:focus-visible {
   box-shadow: 0 0 10px var(--accent);
   flex: 0 0 auto;
 }
-.navlinks { display: flex; gap: 22px; font-size: 0.9rem; }
+/* flex-wrap, or the last nav link drags the whole document sideways below
+   ~400px. This is the fix still pinned on the live site. */
+.navlinks { display: flex; gap: 22px; font-size: 0.9rem; flex-wrap: wrap; justify-content: flex-end; }
 .navlinks a { color: var(--dim); }
 .navlinks a:hover { color: var(--text); }
 
@@ -347,7 +349,7 @@ footer.site a:hover { color: var(--accent); }
   .hero { padding: 56px 0 36px; }
   .projects { grid-template-columns: 1fr; }
   .card.feature .shot { aspect-ratio: 16 / 10; }
-  .navlinks { gap: 16px; font-size: 0.86rem; }
+  .navlinks { gap: 14px; font-size: 0.84rem; row-gap: 4px; }
   .navlinks a.hide-sm { display: none; }
 }
 
