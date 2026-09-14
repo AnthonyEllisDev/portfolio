@@ -6,6 +6,13 @@
 <title>Space Weather — Anthony Ellis</title>
 <meta name="description" content="Live solar wind, interplanetary magnetic field and Kp index from NOAA SWPC, drawn in the browser. No signup, no upload, no account.">
 <meta name="theme-color" content="#070a10">
+<script>
+/* This page is also embedded as an iframe on the front page. When it is, the
+   site chrome has to go: a header and footer inside a box on the same site
+   reads as a portfolio inside a portfolio, which is what it looked like. */
+if (window.self !== window.top || /[?&]embed\b/.test(location.search))
+  document.documentElement.classList.add('embedded');
+</script>
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
@@ -14,6 +21,12 @@
    of the page is that the drawing is the work. ------------------------- */
 
 body{padding-bottom:60px}
+
+/* embedded: dashboard only, no site chrome */
+html.embedded .topbar,
+html.embedded .foot{display:none}
+html.embedded body{padding-bottom:24px}
+html.embedded .sw-head{padding-top:18px}
 
 .sw-head{display:flex;align-items:flex-start;justify-content:space-between;
   gap:20px;flex-wrap:wrap;padding:34px 0 18px}
@@ -97,7 +110,8 @@ body{padding-bottom:60px}
   <div class="sw-head">
     <div>
       <h1>Space weather, right now</h1>
-      <p class="src">Solar wind and geomagnetic data from NOAA's Space Weather Prediction Center. Drawn in your browser, refreshed every two minutes.</p>
+      <p class="src">Solar wind and geomagnetic data from NOAA's Space Weather Prediction Center,
+      drawn in your browser and refreshed every five minutes. <span id="craft"></span></p>
     </div>
     <span class="status" id="status" role="status" aria-live="polite">
       <span class="led"></span><span id="statusText">Connecting</span>
@@ -130,7 +144,7 @@ body{padding-bottom:60px}
   <div class="panels">
     <div class="panel wide">
       <h2>Solar wind speed</h2>
-      <p class="sub">Last six hours, measured at the L1 point about a million miles upstream. What you see here reaches Earth in roughly 30 to 60 minutes.</p>
+      <p class="sub">Last six hours at one-minute cadence, measured at the L1 point about a million miles upstream. What you see here reaches Earth in roughly 30 to 60 minutes.</p>
       <canvas id="cSpeed" height="220"></canvas>
     </div>
 
@@ -142,7 +156,7 @@ body{padding-bottom:60px}
 
     <div class="panel">
       <h2>K<sub>p</sub> index</h2>
-      <p class="sub">Measured for the last 24 hours, forecast for the next 24. Zero is quiet, five is a storm, nine is once a decade.</p>
+      <p class="sub">Measured in three-hour periods, then forecast forward. Zero is quiet, five is a storm, nine is once a decade.</p>
       <canvas id="cKp" height="200"></canvas>
     </div>
   </div>
@@ -158,6 +172,11 @@ body{padding-bottom:60px}
     Nothing is stored, nothing is sent anywhere else, and there is no server of mine in the
     middle. Because the request goes straight from you to NOAA, NOAA sees it, the same way it
     would if you opened their site yourself.</p>
+    <p><strong>Why it downloads a lot.</strong> The solar wind feeds that allow cross-origin
+    requests come as 24-hour, one-minute files — about 250 KB compressed, 4.4 MB of JSON once
+    unpacked. There is no shorter version, so the browser takes the whole day and keeps the last
+    six hours of it. That is the price of not running a server in between, and it seemed like
+    the better trade.</p>
     <p><strong>What it is not.</strong> This is measured solar wind and geomagnetic data, not a
     radiation reading and not a health measurement. The aurora line below the charts is an
     estimate from the Kp index, which is a rough guide to how far from the poles the auroral
@@ -183,27 +202,42 @@ body{padding-bottom:60px}
      scaled, or everything is blurry on a retina screen.
    ======================================================================== */
 
+/* Endpoint note, because this cost an evening: the solar-wind products under
+   /products/solar-wind/ — plasma-6-hour.json and friends, the ones every
+   tutorial uses — send no Access-Control-Allow-Origin header, so a browser on
+   another origin cannot read them at all. The real-time files under /json/rtsw/
+   do allow it. They carry 24 hours at one-minute cadence instead of six, and
+   they interleave several spacecraft, both of which are handled below. */
 const SRC = {
-  plasma: 'https://services.swpc.noaa.gov/products/solar-wind/plasma-6-hour.json',
-  mag:    'https://services.swpc.noaa.gov/products/solar-wind/mag-6-hour.json',
-  kp:     'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json',
-  kpFc:   'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json'
+  wind: 'https://services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json',
+  mag:  'https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json',
+  kp:   'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json',
+  kpFc: 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json'
 };
 // ?fixture=1 swaps in recorded sample data for offline layout work.
-if (new URLSearchParams(location.search).has('fixture')) {
-  SRC.plasma='/fixtures/plasma.json'; SRC.mag='/fixtures/mag.json';
-  SRC.kp='/fixtures/kp.json';        SRC.kpFc='/fixtures/kp-forecast.json';
+const FIXTURE = new URLSearchParams(location.search).has('fixture');
+if (FIXTURE) {
+  SRC.wind='/fixtures/wind.json'; SRC.mag='/fixtures/mag.json';
+  SRC.kp='/fixtures/kp.json';     SRC.kpFc='/fixtures/kp-forecast.json';
 }
 
-const REFRESH_MS = 120000;
+const REFRESH_MS = 300000;            // five minutes; the feeds move once a minute
+const WINDOW_MS  = 6 * 3600 * 1000;   // charts show the last six hours
 const $ = id => document.getElementById(id);
 
-/* SWPC hands back [[header…],[row…],…]. Turn it into objects keyed by the
-   header so a reordered column can't silently shift every value. */
-function table(rows){
-  if (!Array.isArray(rows) || rows.length < 2) throw new Error('unexpected shape');
-  const head = rows[0].map(h => String(h).trim().toLowerCase());
-  return rows.slice(1).map(r => Object.fromEntries(head.map((h,i) => [h, r[i]])));
+/* SWPC ships two different shapes from the same host. The /json/ feeds are
+   arrays of objects. The older /products/ feeds are arrays-of-arrays with a
+   header row, like a CSV that took a wrong turn. Both get flattened to plain
+   objects here, and keys are lowercased, because the same quantity arrives as
+   "Kp" in one feed and "kp" in the next. */
+function rows(data){
+  if (!Array.isArray(data) || !data.length) throw new Error('unexpected shape');
+  if (Array.isArray(data[0])){
+    const head = data[0].map(h => String(h).trim().toLowerCase());
+    return data.slice(1).map(r => Object.fromEntries(head.map((h,i) => [h, r[i]])));
+  }
+  return data.map(o => Object.fromEntries(
+    Object.entries(o).map(([k, v]) => [k.toLowerCase(), v])));
 }
 const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
 const parseTime = s => new Date(String(s).replace(' ','T').replace(/(\.\d+)?$/,'Z'));
@@ -211,7 +245,33 @@ const parseTime = s => new Date(String(s).replace(' ','T').replace(/(\.\d+)?$/,'
 async function grab(url){
   const r = await fetch(url, {cache:'no-store'});
   if (!r.ok) throw new Error(url + ' → HTTP ' + r.status);
-  return table(await r.json());
+  return rows(await r.json());
+}
+
+/* The real-time solar wind files are not one spacecraft. ACE, IMAP and DSCOVR
+   (which NOAA labels SOLAR1) all appear in the same array, with overlapping
+   timestamps — roughly a third of the rows in a 24-hour file are a duplicate
+   minute seen by a different instrument. Plot the array as it arrives and you
+   draw three spacecraft on top of each other, and it still looks like a chart.
+   NOAA flags the designated primary feed with active:true, so that is the only
+   one plotted. If the flag is absent altogether, which happens mid-handover,
+   fall back to whichever single source contributed the most rows rather than
+   silently mixing them. */
+function primary(list, field){
+  let use = list.filter(r => r.active === true);
+  if (!use.length){
+    const tally = {};
+    list.forEach(r => { tally[r.source] = (tally[r.source] || 0) + 1; });
+    const best = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
+    use = list.filter(r => r.source === best);
+  }
+  // recorded fixtures are dated whenever they were recorded, so the rolling
+  // window is only applied to live data.
+  const cut = FIXTURE ? 0 : Date.now() - WINDOW_MS;
+  return use
+    .map(r => ({t: parseTime(r.time_tag), v: num(r[field]), src: r.source}))
+    .filter(p => !isNaN(p.t) && p.t.getTime() > cut)
+    .sort((a, b) => a.t - b.t);
 }
 
 /* ── canvas helpers ─────────────────────────────────────────────────────── */
@@ -364,29 +424,42 @@ function aurora(kp){
 let lastGood = null;
 
 async function load(){
-  const jobs = await Promise.allSettled([grab(SRC.plasma), grab(SRC.mag), grab(SRC.kp), grab(SRC.kpFc)]);
-  const [plasma, mag, kp, kpFc] = jobs;
-  let failures = 0;
+  const jobs = await Promise.allSettled([grab(SRC.wind), grab(SRC.mag), grab(SRC.kp), grab(SRC.kpFc)]);
+  const [wind, mag, kp, kpFc] = jobs;
+  jobs.forEach((j, i) => {           // name the URL that failed, in the console
+    if (j.status === 'rejected')
+      console.warn('space weather: ' + Object.keys(SRC)[i] + ' feed failed —', j.reason && j.reason.message || j.reason);
+  });
+  let failures = 0, craft = null;
 
-  if (plasma.status === 'fulfilled'){
-    const rows = plasma.value.map(r => ({t: parseTime(r.time_tag), v: num(r.speed)}));
-    const dens = plasma.value.map(r => ({t: parseTime(r.time_tag), v: num(r.density)}));
-    const s = [...rows].reverse().find(p => p.v !== null);
+  if (wind.status === 'fulfilled'){
+    const speed = primary(wind.value, 'proton_speed');
+    const dens  = primary(wind.value, 'proton_density');
+    const s = [...speed].reverse().find(p => p.v !== null);
     const d = [...dens].reverse().find(p => p.v !== null);
-    if (s) put('vSpeed', s.v.toFixed(0), 'km/s', s.v > 600 ? 'lively' : 'calm', speedWord(s.v));
+    if (s){ put('vSpeed', s.v.toFixed(0), 'km/s', s.v > 600 ? 'lively' : 'calm', speedWord(s.v));
+            craft = s.src; }
     if (d) put('vDens', d.v.toFixed(1), 'p/cm³', 'calm', d.v > 10 ? 'dense, compressed' : 'ordinary');
-    line($('cSpeed'), rows, {label: v => v.toFixed(0)});
+    line($('cSpeed'), speed, {label: v => v.toFixed(0)});
   } else { failures++; }
 
   if (mag.status === 'fulfilled'){
-    const bz = mag.value.map(r => ({t: parseTime(r.time_tag), v: num(r.bz_gsm)}));
+    const bz = primary(mag.value, 'bz_gsm');
     const b = [...bz].reverse().find(p => p.v !== null);
-    if (b) put('vBz', (b.v > 0 ? '+' : '') + b.v.toFixed(1), 'nT',
+    if (b){ put('vBz', (b.v > 0 ? '+' : '') + b.v.toFixed(1), 'nT',
                b.v <= -8 ? 'storm' : b.v < 0 ? 'lively' : 'calm',
                b.v < 0 ? 'southward, coupling' : 'northward, shut');
+            craft = craft || b.src; }
     line($('cBz'), bz, {zero: 0, stroke: '#8fd3ff', fill: 'rgba(143,211,255,.22)',
                         label: v => v.toFixed(0)});
   } else { failures++; }
+
+  /* NOAA's own name for DSCOVR in these files is SOLAR1. Nobody outside SWPC
+     calls it that, so it gets translated on the way to the page. */
+  const CRAFT = {SOLAR1: 'DSCOVR', DSCOVR: 'DSCOVR', ACE: 'ACE', IMAP: 'IMAP'};
+  $('craft').textContent = craft
+    ? 'The readings below are coming from ' + (CRAFT[craft] || craft) + '.'
+    : 'No spacecraft readings right now.';
 
   let kpNow = null;
   const obs = [], fc = [];
@@ -398,10 +471,17 @@ async function load(){
     if (obs.length) kpNow = obs[obs.length - 1].v;
   } else { failures++; }
   if (kpFc.status === 'fulfilled'){
-    kpFc.value.slice(0, 8).forEach(r => {
-      const v = num(r.kp ?? r.kp_index);
-      if (v !== null) fc.push({v, forecast: true});
-    });
+    /* The forecast feed restates the last several measured periods before it
+       reaches the predicted ones, all in one array. Only the rows it marks
+       predicted are actually a forecast; drawing the rest as forecast would
+       double-count days that already happened. */
+    kpFc.value
+      .filter(r => String(r.observed).toLowerCase() === 'predicted')
+      .slice(0, 8)
+      .forEach(r => {
+        const v = num(r.kp ?? r.kp_index);
+        if (v !== null) fc.push({v, forecast: true});
+      });
   } else { failures++; }
   bars($('cKp'), obs, fc);
 
@@ -421,9 +501,12 @@ async function load(){
   else {
     setStatus('err', 'NOAA unreachable');
     $('vAurora').textContent = 'No data.';
-    $('nAurora').textContent = 'Could not reach NOAA SWPC. That is usually their maintenance window or your network, not a fault on this page. It retries every two minutes.';
+    $('nAurora').textContent = 'Could not reach NOAA SWPC. That is usually their maintenance window or your network, not a fault on this page. It retries every five minutes.';
   }
 }
+
+if (document.documentElement.classList.contains('embedded'))
+  document.querySelectorAll('a[href]').forEach(a => a.target = '_top');
 
 let redrawTimer;
 addEventListener('resize', () => { clearTimeout(redrawTimer); redrawTimer = setTimeout(load, 220); });

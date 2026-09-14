@@ -51,7 +51,7 @@
     <div class="fact"><dt>Role</dt><dd>Sole developer</dd></div>
     <div class="fact"><dt>Stack</dt><dd>Vanilla JS · Canvas 2D</dd></div>
     <div class="fact"><dt>Data</dt><dd>NOAA SWPC, four endpoints</dd></div>
-    <div class="fact"><dt>Refresh</dt><dd>Every two minutes</dd></div>
+    <div class="fact"><dt>Refresh</dt><dd>Every five minutes</dd></div>
     <div class="fact"><dt>Dependencies</dt><dd>None</dd></div>
   </dl>
 
@@ -71,25 +71,72 @@
       is blowing. Speed gets the headlines; B<sub>z</sub> decides the outcome.
     </p>
 
-    <h2>Parsing by name, not by position</h2>
+    <h2>The endpoints everyone links to don't work</h2>
     <p>
-      SWPC returns arrays of arrays with a header row, like a CSV that took a wrong turn:
+      The obvious solar wind feeds are the six-hour products at
+      <code>/products/solar-wind/plasma-6-hour.json</code> and its magnetic-field twin. They are
+      the ones in every tutorial. They are also the ones the first version of this page shipped
+      with, and on the live site every reading was a dash.
     </p>
-    <ul>
-      <li><code>[["time_tag","density","speed","temperature"], ["2026-09-13 22:58:00.000", "4.51", "412.3", "61000"], …]</code></li>
-    </ul>
     <p>
-      The tempting thing is to read <code>row[2]</code> for speed and move on. The problem is
-      that if NOAA ever reorders the columns, that code doesn't crash. It quietly starts
-      plotting temperature as speed, and the chart still looks like a chart. So the header row
-      is turned into keys first and every value is looked up by name. A renamed column shows up
-      as a missing reading, which is visible, instead of a wrong reading, which isn't.
+      Those files send no <code>Access-Control-Allow-Origin</code> header, so no browser on
+      another origin is allowed to read them. Nothing about that is visible from the terminal:
+      <code>curl</code> fetches them happily, because CORS is a rule browsers enforce on
+      themselves and <code>curl</code> is not a browser. The only way to find it was to open the
+      console on the deployed page and read the error.
+    </p>
+    <p>
+      The real-time files under <code>/json/rtsw/</code> do send the header. The trade is that
+      they arrive as 24 hours of one-minute samples, with no shorter version offered: roughly
+      4.4 MB of JSON between the two files, which gzips down to about 250 KB on the wire. The
+      page takes the whole day and keeps the last six hours of it. That is a lot of rows to
+      throw away, and still cheaper than standing up a proxy of my own to trim them, which would
+      have put a server I have to keep alive between the visitor and NOAA.
+    </p>
+
+    <h2>It isn't one spacecraft</h2>
+    <p>
+      The bigger surprise was inside the file. Those real-time feeds are not a single
+      instrument's record: ACE, IMAP and DSCOVR all appear in the same array, with overlapping
+      timestamps. In a typical 24-hour file, about a third of the rows are a minute that already
+      appeared, seen by a different spacecraft.
+    </p>
+    <p>
+      Plot the array as it arrives and you draw three spacecraft on top of each other. It does
+      not throw, it does not look empty, and it does not look obviously wrong — it looks like a
+      noisy chart, which is exactly what solar wind data is supposed to look like. NOAA marks
+      the designated primary feed with <code>active: true</code>, so that flag decides what gets
+      drawn. If it is missing entirely, which happens during a handover between spacecraft, the
+      page falls back to whichever single source contributed the most rows rather than quietly
+      blending them.
     </p>
 
     <div class="notecard">
       <p>The general rule this is a case of: when you can choose between a failure that is
-      loud and a failure that is plausible, take the loud one.</p>
+      loud and a failure that is plausible, take the loud one. Mixed-spacecraft data is the
+      plausible kind, which is why it is worth going out of your way to rule out.</p>
     </div>
+
+    <h2>Three shapes, one parser</h2>
+    <p>
+      The feeds don't agree with each other either. The <code>/json/</code> endpoints return
+      arrays of objects. The older <code>/products/</code> endpoints return arrays of arrays
+      with a header row, like a CSV that took a wrong turn. And the same quantity arrives as
+      <code>Kp</code> in the measured feed and <code>kp</code> in the forecast one.
+    </p>
+    <p>
+      So everything goes through one normaliser that flattens both shapes to plain objects and
+      lowercases the keys. Values are then looked up by name, never by column position: if a
+      column moves, a lookup by index doesn't crash, it just starts plotting temperature as
+      speed.
+    </p>
+    <p>
+      The forecast feed has its own trap. It restates the last several measured periods before
+      it reaches the predicted ones, all in the same array, distinguished only by an
+      <code>observed</code> field reading <code>observed</code>, <code>estimated</code> or
+      <code>predicted</code>. Take the first eight rows and you will draw last week as though it
+      were next week.
+    </p>
 
     <h2>Failing one panel at a time</h2>
     <p>
@@ -100,7 +147,8 @@
       many feeds are missing.
     </p>
     <p>
-      If everything fails, the page says NOAA is unreachable and leaves the readings as dashes.
+      If everything fails, the page says NOAA is unreachable, names the failing feed in the
+      console, and leaves the readings as dashes.
       It does not fall back to cached numbers or sample data. A dashboard showing stale values
       with a confident live indicator is worse than one admitting it knows nothing.
     </p>
