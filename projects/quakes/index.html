@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ground Under Las Vegas — Anthony Ellis</title>
+<meta name="description" content="Every earthquake USGS recorded in the last day, plotted by distance and bearing from Las Vegas. Notes on leaving the map out, great-circle maths, and answering a question honestly when the answer is almost always no.">
+<link rel="canonical" href="https://anthonyellis.dev/projects/quakes/">
+<meta name="theme-color" content="#070a10">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="anthonyellis.dev">
+<meta property="og:title" content="The Ground Under Las Vegas">
+<meta property="og:description" content="A day of earthquakes, arranged by how far they were from here and which way.">
+<meta property="og:url" content="https://anthonyellis.dev/projects/quakes/">
+<meta property="og:image" content="https://anthonyellis.dev/assets/img/quakes.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/#work">Work</a>
+      <a href="/#path" class="hide-sm">Path</a>
+      <a href="/#about">About</a>
+      <a href="/#contact">Contact</a>
+      <a href="https://github.com/AnthonyEllisDev">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="case-hero">
+    <a class="backlink" href="/#work">← All projects</a>
+    <p class="eyebrow">Live data · Canvas</p>
+    <h1>The Ground Under Las Vegas</h1>
+    <p class="lede">
+      A day of earthquakes from the USGS, arranged not on a map but on rings around the city I
+      live in — because the only thing I actually want to know is how far away it was.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/demos/quakes.html">Open it full screen <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="https://github.com/AnthonyEllisDev/portfolio/blob/main/demos/quakes.html">View source</a>
+    </div>
+  </div>
+
+  <div class="playable" data-src="/demos/quakes.html?embed=1">
+    <img src="/assets/img/quakes.jpg" width="1200" height="675" loading="lazy"
+         alt="A polar plot of recent earthquakes arranged by distance and bearing from Las Vegas.">
+    <button class="start" type="button"><span class="disc"></span><b>Open the monitor</b><small>Live USGS data · about 150 KB · starts on this page</small></button>
+  </div>
+
+  <dl class="factgrid">
+    <div class="fact"><dt>Role</dt><dd>Sole developer</dd></div>
+    <div class="fact"><dt>Stack</dt><dd>Vanilla JS · Canvas 2D</dd></div>
+    <div class="fact"><dt>Data</dt><dd>USGS 24-hour GeoJSON</dd></div>
+    <div class="fact"><dt>Typical day</dt><dd>~200 events worldwide</dd></div>
+    <div class="fact"><dt>API keys</dt><dd>None required</dd></div>
+    <div class="fact"><dt>Dependencies</dt><dd>None</dd></div>
+  </dl>
+
+  <article class="case">
+
+    <h2>Leaving the map out</h2>
+    <p>
+      The default way to draw earthquakes is dots on a world map, and I built that first. It
+      looks fine and it answers nothing. At world scale every event near you is in the same
+      three pixels, and the thing you want to know — is that close? — is the one thing the
+      projection destroys.
+    </p>
+    <p>
+      So the main panel is a polar plot centred on Las Vegas: distance as radius, compass
+      bearing as angle, rings every 200 km out to 800. It is a radar screen, which is a
+      borrowed idea, but it is borrowed from an instrument built to answer exactly this
+      question. A basemap under it would be decoration. There isn't one.
+    </p>
+    <div class="notecard">
+      <p>A map is a good default and a bad habit. Before drawing one, it's worth asking whether
+      geography is the question or just the data's native format.</p>
+    </div>
+
+    <h2>Distance and bearing</h2>
+    <p>
+      Both come from spherical trigonometry rather than treating latitude and longitude as x
+      and y, which falls apart quickly at these latitudes — a degree of longitude in Las Vegas
+      is about 20% shorter than a degree of latitude.
+    </p>
+    <ul>
+      <li>Distance is the haversine formula, accurate to a fraction of a percent on a sphere.
+        The epicentre itself is less precise than that, so there is nothing to gain from a
+        better earth model here.</li>
+      <li>The angle is the <em>initial</em> bearing, which is not the heading you would hold the
+        whole way. On a great circle the bearing drifts. What the plot claims is the direction
+        you would set off in, which is what a compass rose is for.</li>
+    </ul>
+
+    <h2>Reading the noise floor</h2>
+    <p>
+      The magnitude panel shows everything the network recorded, and the bottom of it is not
+      geology. Below about M1.5 an event only appears where seismometers happen to be dense, so
+      the chart is partly a map of instrumentation.
+    </p>
+    <p>
+      That is a real limit on the data and the page says so rather than presenting the floor as
+      if it were the natural rate of small earthquakes. Southern California is over-represented
+      on this chart for the same reason it is over-represented in every earthquake dataset:
+      somebody put a lot of sensors there.
+    </p>
+
+    <h2>Saying no</h2>
+    <p>
+      The page ends by answering whether any of this is worth worrying about. Nearly every day
+      the answer is no, and it says no — with the count, the largest magnitude and the closest
+      distance behind it.
+    </p>
+    <p>
+      It would have been easy to make a quiet day feel eventful. Colour the dots red, use the
+      word "activity", let the visitor infer. The honest version says that nothing within
+      800 km reached the threshold where a person notices without an instrument, and that the
+      Basin and Range does this continuously.
+    </p>
+
+    <h2>What I'd do next</h2>
+    <ul>
+      <li>Depth, which the plot currently throws away. A shallow M3 nearby matters more than a
+        deep M4, and there's no encoding for it yet.</li>
+      <li>The USGS "felt report" count, which is the only genuinely human number in the feed:
+        how many people filled in a form saying they noticed.</li>
+      <li>A longer window than a day, so the background rate is visible as a rate rather than
+        as a single day's sample.</li>
+    </ul>
+
+    <div class="cta-row" style="margin-top:36px">
+      <a class="btn btn-primary" href="/demos/quakes.html">Open it full screen <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="mailto:anthony@anthonyellis.dev">Ask me about it</a>
+    </div>
+
+    <nav class="pager">
+      <a href="/projects/grid/">← Heat and Load</a>
+      <a href="/#work">All projects →</a>
+    </nav>
+  </article>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© <span class="yr">2026</span> Anthony Ellis</span>
+    <span><a href="/#work">All projects</a></span>
+  </div>
+</footer>
+
+<script>document.querySelectorAll('.yr').forEach(e => e.textContent = new Date().getFullYear());</script>
+<script src="/assets/js/playable.js" defer></script>
+</body>
+</html>

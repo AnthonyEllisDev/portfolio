@@ -15,82 +15,6 @@ if (window.self !== window.top || /[?&]embed\b/.test(location.search))
 </script>
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/css/site.css">
-<style>
-/* ── space weather monitor ───────────────────────────────────────────────
-   Everything here draws to canvas by hand. No chart library: the whole point
-   of the page is that the drawing is the work. ------------------------- */
-
-body{padding-bottom:60px}
-
-/* embedded: dashboard only, no site chrome */
-html.embedded .topbar,
-html.embedded .foot{display:none}
-html.embedded body{padding-bottom:24px}
-html.embedded .sw-head{padding-top:18px}
-
-.sw-head{display:flex;align-items:flex-start;justify-content:space-between;
-  gap:20px;flex-wrap:wrap;padding:34px 0 18px}
-.sw-head h1{font-size:clamp(1.6rem,3.4vw,2.2rem);margin:0 0 6px}
-.sw-head .src{color:var(--faint);font-size:.9rem;margin:0}
-
-/* live / stale / failed pill */
-.status{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);
-  font-size:.74rem;letter-spacing:.13em;text-transform:uppercase;
-  border:1px solid var(--line-hi);border-radius:6px;padding:7px 12px;color:var(--dim)}
-.status .led{width:8px;height:8px;border-radius:50%;background:var(--faint);
-  box-shadow:0 0 8px currentColor}
-.status.ok    {color:var(--good);border-color:rgba(61,220,151,.35)}
-.status.ok .led{background:var(--good)}
-.status.warn  {color:#f5c26b;border-color:rgba(245,194,107,.35)}
-.status.warn .led{background:#f5c26b}
-.status.err   {color:#ff8a7a;border-color:rgba(255,138,122,.4)}
-.status.err .led{background:#ff8a7a}
-@media (prefers-reduced-motion:no-preference){
-  .status.ok .led{animation:pulse 2.4s ease-in-out infinite}
-}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-
-/* headline numbers */
-.readouts{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);
-  border-radius:var(--radius);overflow:hidden;
-  grid-template-columns:1fr;margin:6px 0 26px}
-@media (min-width:400px){ .readouts{grid-template-columns:repeat(2,1fr)} }
-@media (min-width:760px){ .readouts{grid-template-columns:repeat(4,1fr)} }
-.ro{background:var(--panel);padding:16px 18px 15px}
-.ro dt{font-family:var(--mono);font-size:.7rem;letter-spacing:.15em;
-  text-transform:uppercase;color:var(--faint);margin:0 0 7px}
-.ro dd{margin:0;font-size:clamp(1.4rem,5vw,1.72rem);line-height:1.05;font-variant-numeric:tabular-nums;
-  letter-spacing:-.02em}
-.ro .unit{font-size:.82rem;color:var(--dim);margin-left:5px;letter-spacing:0}
-.ro .note{display:block;font-size:.79rem;color:var(--faint);margin-top:7px;min-height:1em}
-.ro dd.calm{color:var(--text)}
-.ro dd.lively{color:#8fd3ff}
-.ro dd.storm{color:#ffb86b}
-.ro dd.severe{color:#ff8a7a}
-.ro dd.dash{color:var(--faint)}
-
-/* charts */
-.panels{display:grid;gap:20px;grid-template-columns:1fr}
-@media (min-width:900px){ .panels{grid-template-columns:1fr 1fr} }
-.panel{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
-  padding:18px 18px 14px}
-.panel.wide{grid-column:1/-1}
-.panel h2{font-size:1rem;margin:0 0 3px}
-.panel .sub{font-size:.86rem;color:var(--faint);margin:0 0 14px}
-.panel canvas{display:block;width:100%;height:auto}
-
-/* the local question */
-.verdict{border-left:2px solid var(--accent);background:rgba(77,163,255,.06);
-  border-radius:0 10px 10px 0;padding:18px 22px;margin:26px 0 0}
-.verdict h2{font-size:1.02rem;margin:0 0 8px}
-.verdict p{margin:0;color:#cfdbea}
-.verdict .big{font-size:1.3rem;color:var(--text);display:block;margin-bottom:6px}
-
-.foot{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);
-  color:var(--faint);font-size:.88rem;max-width:74ch}
-.foot a{color:var(--accent)}
-.foot p{margin:0 0 .7em}
-</style>
 </head>
 <body>
 
@@ -107,7 +31,7 @@ html.embedded .sw-head{padding-top:18px}
 
 <main class="wrap">
 
-  <div class="sw-head">
+  <div class="mon-head">
     <div>
       <h1>Space weather, right now</h1>
       <p class="src">Solar wind and geomagnetic data from NOAA's Space Weather Prediction Center,
@@ -166,7 +90,7 @@ html.embedded .sw-head{padding-top:18px}
     <p><span class="big" id="vAurora">Working it out…</span><span id="nAurora"></span></p>
   </div>
 
-  <div class="foot">
+  <div class="mon-foot">
     <p><strong>Where this comes from.</strong> Every number on this page is fetched directly
     from <a href="https://www.swpc.noaa.gov/">NOAA SWPC</a> by your browser and drawn here.
     Nothing is stored, nothing is sent anywhere else, and there is no server of mine in the
@@ -186,28 +110,24 @@ html.embedded .sw-head{padding-top:18px}
 
 </main>
 
+<script src="/assets/js/panel.js"></script>
 <script>
 /* ===========================================================================
    Space weather monitor
 
-   Four NOAA SWPC endpoints, no key, no library, no build step. Charts are
-   drawn by hand to canvas because that is the part worth showing.
+   Everything generic — fetching, the two feed shapes, canvas sizing, the
+   status pill, the chart drawing — lives in /assets/js/panel.js, shared with
+   the other monitors. What is left in this file is the part that is actually
+   about the sun.
 
-   Design notes:
-   - Every fetch is independent. One endpoint failing degrades that panel
-     rather than the page.
-   - SWPC returns arrays-of-arrays with a header row, so parsing is by column
-     name rather than index. The column order has changed before.
-   - Canvas is sized to the element's real width times devicePixelRatio, then
-     scaled, or everything is blurry on a retina screen.
-   ======================================================================== */
-
-/* Endpoint note, because this cost an evening: the solar-wind products under
+   Endpoint note, because this cost an evening: the solar-wind products under
    /products/solar-wind/ — plasma-6-hour.json and friends, the ones every
    tutorial uses — send no Access-Control-Allow-Origin header, so a browser on
-   another origin cannot read them at all. The real-time files under /json/rtsw/
-   do allow it. They carry 24 hours at one-minute cadence instead of six, and
-   they interleave several spacecraft, both of which are handled below. */
+   another origin cannot read them at all. The real-time files under
+   /json/rtsw/ do allow it. They carry 24 hours at one-minute cadence instead
+   of six, and they interleave several spacecraft, both handled below.
+   ======================================================================== */
+
 const SRC = {
   wind: 'https://services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json',
   mag:  'https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json',
@@ -223,30 +143,6 @@ if (FIXTURE) {
 
 const REFRESH_MS = 300000;            // five minutes; the feeds move once a minute
 const WINDOW_MS  = 6 * 3600 * 1000;   // charts show the last six hours
-const $ = id => document.getElementById(id);
-
-/* SWPC ships two different shapes from the same host. The /json/ feeds are
-   arrays of objects. The older /products/ feeds are arrays-of-arrays with a
-   header row, like a CSV that took a wrong turn. Both get flattened to plain
-   objects here, and keys are lowercased, because the same quantity arrives as
-   "Kp" in one feed and "kp" in the next. */
-function rows(data){
-  if (!Array.isArray(data) || !data.length) throw new Error('unexpected shape');
-  if (Array.isArray(data[0])){
-    const head = data[0].map(h => String(h).trim().toLowerCase());
-    return data.slice(1).map(r => Object.fromEntries(head.map((h,i) => [h, r[i]])));
-  }
-  return data.map(o => Object.fromEntries(
-    Object.entries(o).map(([k, v]) => [k.toLowerCase(), v])));
-}
-const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
-const parseTime = s => new Date(String(s).replace(' ','T').replace(/(\.\d+)?$/,'Z'));
-
-async function grab(url){
-  const r = await fetch(url, {cache:'no-store'});
-  if (!r.ok) throw new Error(url + ' → HTTP ' + r.status);
-  return rows(await r.json());
-}
 
 /* The real-time solar wind files are not one spacecraft. ACE, IMAP and DSCOVR
    (which NOAA labels SOLAR1) all appear in the same array, with overlapping
@@ -274,133 +170,9 @@ function primary(list, field){
     .sort((a, b) => a.t - b.t);
 }
 
-/* ── canvas helpers ─────────────────────────────────────────────────────── */
-function fit(cv){
-  const dpr = window.devicePixelRatio || 1;
-  const w = cv.clientWidth || cv.parentNode.clientWidth;
-  const h = parseInt(cv.getAttribute('height'), 10);
-  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-  cv.style.height = h + 'px';
-  const g = cv.getContext('2d');
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.clearRect(0, 0, w, h);
-  return {g, w, h};
-}
-const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-
-function axes(g, w, h, pad, lo, hi, label, divs){
-  divs = divs || 4;
-  g.strokeStyle = css('--line'); g.fillStyle = css('--faint');
-  g.lineWidth = 1; g.font = '11px ui-monospace, monospace';
-  for (let i = 0; i <= divs; i++){
-    const y = Math.round(pad.t + (h - pad.t - pad.b) * i / divs) + .5;
-    g.beginPath(); g.moveTo(pad.l, y); g.lineTo(w - pad.r, y); g.stroke();
-    const v = hi - (hi - lo) * i / divs;
-    g.fillText(label(v), 4, y + 3.5);
-  }
-}
-
-/* ── line chart with a soft fill under it ───────────────────────────────── */
-function line(cv, series, opts){
-  const {g, w, h} = fit(cv);
-  const pad = {l: 46, r: 10, t: 12, b: 18};
-  const vals = series.map(p => p.v).filter(v => v !== null);
-  if (!vals.length){ empty(g, w, h); return; }
-  let lo = opts.lo !== undefined ? opts.lo : Math.min(...vals);
-  let hi = opts.hi !== undefined ? opts.hi : Math.max(...vals);
-  const span = (hi - lo) || 1; lo -= span * .12; hi += span * .12;
-  axes(g, w, h, pad, lo, hi, opts.label || (v => v.toFixed(0)));
-
-  const X = i => pad.l + (w - pad.l - pad.r) * i / Math.max(1, series.length - 1);
-  const Y = v => pad.t + (h - pad.t - pad.b) * (1 - (v - lo) / (hi - lo));
-
-  if (opts.zero !== undefined && opts.zero > lo && opts.zero < hi){
-    const y = Math.round(Y(opts.zero)) + .5;
-    g.save(); g.setLineDash([4,4]); g.strokeStyle = css('--line-hi');
-    g.beginPath(); g.moveTo(pad.l, y); g.lineTo(w - pad.r, y); g.stroke(); g.restore();
-  }
-
-  const grad = g.createLinearGradient(0, pad.t, 0, h - pad.b);
-  grad.addColorStop(0, opts.fill || 'rgba(77,163,255,.26)');
-  grad.addColorStop(1, 'rgba(77,163,255,0)');
-  g.beginPath(); let started = false;
-  series.forEach((p, i) => { if (p.v === null) return;
-    const x = X(i), y = Y(p.v);
-    started ? g.lineTo(x, y) : (g.moveTo(x, y), started = true); });
-  if (started){
-    const lastX = X(series.length - 1);
-    g.lineTo(lastX, h - pad.b); g.lineTo(pad.l, h - pad.b); g.closePath();
-    g.fillStyle = grad; g.fill();
-  }
-
-  g.beginPath(); started = false;
-  series.forEach((p, i) => { if (p.v === null){ started = false; return; }
-    const x = X(i), y = Y(p.v);
-    started ? g.lineTo(x, y) : (g.moveTo(x, y), started = true); });
-  g.strokeStyle = opts.stroke || css('--accent');
-  g.lineWidth = 1.9; g.lineJoin = 'round'; g.stroke();
-
-  const last = [...series].reverse().find(p => p.v !== null);
-  if (last){
-    const i = series.lastIndexOf(last);
-    g.beginPath(); g.arc(X(i), Y(last.v), 3.4, 0, Math.PI * 2);
-    g.fillStyle = opts.stroke || css('--accent'); g.fill();
-  }
-}
-
-/* ── Kp bars: measured solid, forecast hatched ──────────────────────────── */
-function bars(cv, obs, fc){
-  const {g, w, h} = fit(cv);
-  const pad = {l: 26, r: 10, t: 12, b: 26};
-  const all = obs.concat(fc);
-  if (!all.length){ empty(g, w, h); return; }
-  const hi = 9;
-  axes(g, w, h, pad, 0, hi, v => v.toFixed(0), 3);   // 9 / 6 / 3 / 0
-  const bw = (w - pad.l - pad.r) / all.length;
-  const Y = v => pad.t + (h - pad.t - pad.b) * (1 - v / hi);
-
-  all.forEach((p, i) => {
-    const x = pad.l + bw * i, y = Y(p.v), bh = (h - pad.b) - y;
-    const c = p.v >= 7 ? '#ff8a7a' : p.v >= 5 ? '#ffb86b' : p.v >= 4 ? '#8fd3ff' : css('--accent');
-    g.fillStyle = c;
-    g.globalAlpha = p.forecast ? .28 : .92;
-    g.fillRect(Math.round(x) + 1, Math.round(y), Math.max(1, Math.floor(bw) - 2), Math.max(1, bh));
-    g.globalAlpha = 1;
-    if (p.forecast){
-      g.strokeStyle = c; g.globalAlpha = .5; g.lineWidth = 1;
-      g.strokeRect(Math.round(x) + 1.5, Math.round(y) + .5, Math.max(1, Math.floor(bw) - 3), Math.max(1, bh));
-      g.globalAlpha = 1;
-    }
-  });
-
-  // storm threshold
-  const y5 = Math.round(Y(5)) + .5;
-  g.save(); g.setLineDash([3,4]); g.strokeStyle = 'rgba(255,184,107,.5)';
-  g.beginPath(); g.moveTo(pad.l, y5); g.lineTo(w - pad.r, y5); g.stroke(); g.restore();
-
-  g.fillStyle = css('--faint'); g.font = '11px ui-monospace, monospace';
-  g.fillText('measured', pad.l, h - 8);
-  const fcX = pad.l + bw * obs.length;
-  if (fc.length) g.fillText('forecast', Math.min(fcX, w - 62), h - 8);
-}
-
-function empty(g, w, h){
-  g.fillStyle = css('--faint'); g.font = '12px ui-monospace, monospace';
-  g.textAlign = 'center'; g.fillText('no data', w / 2, h / 2); g.textAlign = 'left';
-}
-
-/* ── interpretation ─────────────────────────────────────────────────────── */
-function setStatus(kind, text){
-  const el = $('status'); el.className = 'status ' + kind; $('statusText').textContent = text;
-}
-function put(id, value, unit, cls, note){
-  const dd = $(id);
-  dd.className = cls;
-  dd.innerHTML = value + (unit ? '<span class="unit">' + unit + '</span>' : '');
-  if (note !== undefined) $(id.replace('v', 'n')).textContent = note;
-}
 const speedWord = v => v < 350 ? 'slow' : v < 500 ? 'typical' : v < 650 ? 'fast' : 'very fast';
-const kpClass  = k => k >= 7 ? 'severe' : k >= 5 ? 'storm' : k >= 4 ? 'lively' : 'calm';
+const kpClass   = k => k >= 7 ? 'severe' : k >= 5 ? 'storm' : k >= 4 ? 'lively' : 'calm';
+const kpColor   = v => v >= 7 ? '#ff8a7a' : v >= 5 ? '#ffb86b' : v >= 4 ? '#8fd3ff' : css('--accent');
 
 /* Rough equatorward edge of the auroral oval by Kp, in degrees of geomagnetic
    latitude. Standard NOAA-ish table; deliberately coarse, and labelled as
@@ -420,39 +192,32 @@ function aurora(kp){
   return ['No.', 'Kp ' + kp.toFixed(1) + ' keeps the auroral oval around ' + edge.toFixed(0) + '° geomagnetic latitude, roughly ' + gap.toFixed(0) + '° north of here. Normal, and the usual answer.'];
 }
 
-/* ── load ───────────────────────────────────────────────────────────────── */
-let lastGood = null;
-
 async function load(){
-  const jobs = await Promise.allSettled([grab(SRC.wind), grab(SRC.mag), grab(SRC.kp), grab(SRC.kpFc)]);
-  const [wind, mag, kp, kpFc] = jobs;
-  jobs.forEach((j, i) => {           // name the URL that failed, in the console
-    if (j.status === 'rejected')
-      console.warn('space weather: ' + Object.keys(SRC)[i] + ' feed failed —', j.reason && j.reason.message || j.reason);
+  const {values, failures, total} = await gather({
+    wind: grab(SRC.wind), mag: grab(SRC.mag), kp: grab(SRC.kp), kpFc: grab(SRC.kpFc)
   });
-  let failures = 0, craft = null;
+  let craft = null;
 
-  if (wind.status === 'fulfilled'){
-    const speed = primary(wind.value, 'proton_speed');
-    const dens  = primary(wind.value, 'proton_density');
+  if (values.wind){
+    const speed = primary(values.wind, 'proton_speed');
+    const dens  = primary(values.wind, 'proton_density');
     const s = [...speed].reverse().find(p => p.v !== null);
     const d = [...dens].reverse().find(p => p.v !== null);
     if (s){ put('vSpeed', s.v.toFixed(0), 'km/s', s.v > 600 ? 'lively' : 'calm', speedWord(s.v));
             craft = s.src; }
     if (d) put('vDens', d.v.toFixed(1), 'p/cm³', 'calm', d.v > 10 ? 'dense, compressed' : 'ordinary');
-    line($('cSpeed'), speed, {label: v => v.toFixed(0)});
-  } else { failures++; }
+    line($('cSpeed'), speed, {fill: 'rgba(77,163,255,.26)'});
+  }
 
-  if (mag.status === 'fulfilled'){
-    const bz = primary(mag.value, 'bz_gsm');
+  if (values.mag){
+    const bz = primary(values.mag, 'bz_gsm');
     const b = [...bz].reverse().find(p => p.v !== null);
     if (b){ put('vBz', (b.v > 0 ? '+' : '') + b.v.toFixed(1), 'nT',
                b.v <= -8 ? 'storm' : b.v < 0 ? 'lively' : 'calm',
                b.v < 0 ? 'southward, coupling' : 'northward, shut');
             craft = craft || b.src; }
-    line($('cBz'), bz, {zero: 0, stroke: '#8fd3ff', fill: 'rgba(143,211,255,.22)',
-                        label: v => v.toFixed(0)});
-  } else { failures++; }
+    line($('cBz'), bz, {zero: 0, stroke: '#8fd3ff', fill: 'rgba(143,211,255,.22)'});
+  }
 
   /* NOAA's own name for DSCOVR in these files is SOLAR1. Nobody outside SWPC
      calls it that, so it gets translated on the way to the page. */
@@ -462,56 +227,47 @@ async function load(){
     : 'No spacecraft readings right now.';
 
   let kpNow = null;
-  const obs = [], fc = [];
-  if (kp.status === 'fulfilled'){
-    kp.value.slice(-8).forEach(r => {
+  const kpBars = [];
+  if (values.kp){
+    values.kp.slice(-8).forEach(r => {
       const v = num(r.kp ?? r.kp_index ?? r.estimated_kp);
-      if (v !== null) obs.push({v, forecast: false});
+      if (v !== null) kpBars.push({v, forecast: false});
     });
-    if (obs.length) kpNow = obs[obs.length - 1].v;
-  } else { failures++; }
-  if (kpFc.status === 'fulfilled'){
+    if (kpBars.length) kpNow = kpBars[kpBars.length - 1].v;
+  }
+  if (values.kpFc){
     /* The forecast feed restates the last several measured periods before it
        reaches the predicted ones, all in one array. Only the rows it marks
        predicted are actually a forecast; drawing the rest as forecast would
        double-count days that already happened. */
-    kpFc.value
+    values.kpFc
       .filter(r => String(r.observed).toLowerCase() === 'predicted')
       .slice(0, 8)
       .forEach(r => {
         const v = num(r.kp ?? r.kp_index);
-        if (v !== null) fc.push({v, forecast: true});
+        if (v !== null) kpBars.push({v, forecast: true});
       });
-  } else { failures++; }
-  bars($('cKp'), obs, fc);
+  }
+  bars($('cKp'), kpBars, {lo: 0, hi: 9, divs: 3, color: kpColor,
+                          threshold: 5, keys: ['measured', 'forecast']});
 
   if (kpNow !== null){
     put('vKp', kpNow.toFixed(1), '', kpClass(kpNow),
         kpNow >= 5 ? 'geomagnetic storm' : kpNow >= 4 ? 'unsettled' : 'quiet');
     const [head, detail] = aurora(kpNow);
     $('vAurora').textContent = head; $('nAurora').textContent = detail;
-  } else {
+  } else if (failures < total){
     $('vAurora').textContent = 'Kp unavailable.';
     $('nAurora').textContent = 'The planetary K index feed did not answer, so there is nothing honest to say here.';
-  }
-
-  const when = new Date();
-  if (failures === 0){ lastGood = when; setStatus('ok', 'Live · ' + when.toLocaleTimeString()); }
-  else if (failures < 4){ setStatus('warn', failures + ' feed' + (failures > 1 ? 's' : '') + ' down'); }
-  else {
-    setStatus('err', 'NOAA unreachable');
+  } else {
     $('vAurora').textContent = 'No data.';
     $('nAurora').textContent = 'Could not reach NOAA SWPC. That is usually their maintenance window or your network, not a fault on this page. It retries every five minutes.';
   }
+
+  reportStatus(failures, total, 'NOAA');
 }
 
-if (document.documentElement.classList.contains('embedded'))
-  document.querySelectorAll('a[href]').forEach(a => a.target = '_top');
-
-let redrawTimer;
-addEventListener('resize', () => { clearTimeout(redrawTimer); redrawTimer = setTimeout(load, 220); });
-load();
-setInterval(load, REFRESH_MS);
+monitor(load, REFRESH_MS);
 </script>
 </body>
 </html>

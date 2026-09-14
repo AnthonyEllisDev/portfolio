@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heat and Load — Anthony Ellis</title>
+<meta name="description" content="Las Vegas electricity demand against the day-ahead forecast and the desert temperature that drives it. Live from EIA and Open-Meteo, drawn in the browser.">
+<meta name="theme-color" content="#070a10">
+<script>
+/* Also embedded as an iframe elsewhere on the site; inside a frame the site
+   chrome has to go or it reads as a portfolio inside a portfolio. */
+if (window.self !== window.top || /[?&]embed\b/.test(location.search))
+  document.documentElement.classList.add('embedded');
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/#work">Work</a>
+      <a href="/projects/grid/">About this</a>
+      <a href="/#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="mon-head">
+    <div>
+      <h1>Heat and load, Las Vegas</h1>
+      <p class="src">What the valley is drawing from the grid right now, what Nevada Power
+      predicted yesterday that it would draw, and the desert temperature that decides both.
+      Hourly data from the US Energy Information Administration and Open-Meteo.</p>
+    </div>
+    <span class="status" id="status" role="status" aria-live="polite">
+      <span class="led"></span><span id="statusText">Connecting</span>
+    </span>
+  </div>
+
+  <dl class="readouts">
+    <div class="ro">
+      <dt>Temperature</dt>
+      <dd class="dash" id="vTemp">—<span class="unit">°F</span></dd>
+      <span class="note" id="nTemp"></span>
+    </div>
+    <div class="ro">
+      <dt>Feels like</dt>
+      <dd class="dash" id="vFeels">—<span class="unit">°F</span></dd>
+      <span class="note" id="nFeels"></span>
+    </div>
+    <div class="ro">
+      <dt>Power demand</dt>
+      <dd class="dash" id="vLoad">—<span class="unit">MW</span></dd>
+      <span class="note" id="nLoad"></span>
+    </div>
+    <div class="ro">
+      <dt>Day-ahead miss</dt>
+      <dd class="dash" id="vMiss">—<span class="unit">MW</span></dd>
+      <span class="note" id="nMiss"></span>
+    </div>
+  </dl>
+
+  <div class="panels">
+    <div class="panel wide">
+      <h2>Electricity demand</h2>
+      <p class="sub">Nevada Power's balancing authority — Las Vegas and most of southern Nevada.
+      Solid is metered demand; dashed is the forecast they filed a day ahead, which runs on past
+      the present into tomorrow.</p>
+      <canvas id="cLoad" height="230"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Temperature</h2>
+      <p class="sub">The same window, so the two line up hour for hour. Dashed is forecast.
+      In a desert city the load curve is mostly this curve, delayed.</p>
+      <canvas id="cTemp" height="200"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>How wrong the forecast was</h2>
+      <p class="sub">Metered demand minus the day-ahead forecast, hour by hour. Above the line
+      they under-called it; below, they over-bought.</p>
+      <canvas id="cErr" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <h2>Is the grid following the weather?</h2>
+    <p><span class="big" id="vLead">Working it out…</span><span id="nLead"></span></p>
+  </div>
+
+  <div class="mon-foot">
+    <p><strong>Where this comes from.</strong> Demand and the day-ahead forecast come from the
+    <a href="https://www.eia.gov/electricity/gridmonitor/">EIA Hourly Electric Grid Monitor</a>,
+    which publishes what every US balancing authority files. Temperature comes from
+    <a href="https://open-meteo.com/">Open-Meteo</a>. Both are fetched by your browser straight
+    from the source: no key, no server of mine in between, nothing stored. Because the requests
+    go directly, those two see them, the same way they would if you opened their sites.</p>
+    <p><strong>Why Nevada Power and not the whole country.</strong> The national totals are sums
+    over sixty-odd balancing authorities, and the last hours of the national forecast collapse
+    toward zero because only some of them have filed yet. A single authority has no such seam,
+    and it happens to be the one that keeps the lights on where I live.</p>
+    <p><strong>What it is not.</strong> Metered demand is not the same as generation, and the
+    gap between the two is imports, which southern Nevada relies on. Nothing here is a price, a
+    bill, or a prediction of either.</p>
+    <p><a href="/projects/grid/">How this page was built</a> · <a href="/#work">All projects</a></p>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© <span class="yr">2026</span> Anthony Ellis</span>
+    <span><a href="/#work">All projects</a></span>
+  </div>
+</footer>
+
+<script src="/assets/js/panel.js"></script>
+<script>
+/* ===========================================================================
+   Heat and load — Las Vegas
+
+   Two feeds, both keyless and both allowing cross-origin reads:
+
+   - EIA's Hourly Electric Grid Monitor, the same data behind their public
+     dashboard. Demand (D) is metered and lands within the hour. The day-ahead
+     forecast (DF) is what the balancing authority filed yesterday for today,
+     so it runs about 22 hours past the present. Net generation (NG) is also
+     published but lags by a day or more, which is why it isn't drawn.
+   - Open-Meteo for temperature, asked for in UTC so its hours line up with
+     EIA's without any timezone arithmetic in between.
+
+   Everything generic lives in /assets/js/panel.js.
+   ======================================================================== */
+
+const BA   = 'NEVP';                 // Nevada Power Company
+const HOURS_BACK = 48;
+const REFRESH_MS = 600000;           // ten minutes; this data moves hourly
+
+const FIXTURE = new URLSearchParams(location.search).has('fixture');
+
+/* EIA wants MMDDYYYY HH:MM:SS, in UTC, urlencoded. */
+function eiaStamp(d){
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${d.getUTCFullYear()} ${p(d.getUTCHours())}:00:00`;
+}
+function eiaURL(){
+  const start = eiaStamp(new Date(Date.now() - HOURS_BACK * 3600 * 1000));
+  return 'https://www.eia.gov/electricity/930-api/region_data/series_data'
+       + `?type[0]=D&type[1]=DF&respondent[0]=${BA}&start=` + encodeURIComponent(start);
+}
+const METEO = 'https://api.open-meteo.com/v1/forecast?latitude=36.1699&longitude=-115.1398'
+  + '&hourly=temperature_2m,apparent_temperature'
+  + '&current=temperature_2m,apparent_temperature,relative_humidity_2m'
+  + '&daily=temperature_2m_max&past_days=2&forecast_days=2'
+  + '&temperature_unit=fahrenheit&timezone=UTC';
+
+const SRC = {
+  grid: FIXTURE ? '/fixtures/grid.json'    : eiaURL(),
+  wx:   FIXTURE ? '/fixtures/vegas-wx.json': METEO
+};
+
+/* EIA nests each series as parallel DATES and DATA arrays rather than rows,
+   so it gets unpacked by TYPE_ID into the {t, v} shape everything else uses. */
+function eiaSeries(payload, typeId){
+  const block = (payload && payload[0] && payload[0].data || [])
+    .find(s => s.TYPE_ID === typeId);
+  if (!block || !block.VALUES) return [];
+  const {DATES = [], DATA = []} = block.VALUES;
+  return DATES.map((d, i) => ({t: parseTime(d), v: num(DATA[i])}))
+              .filter(p => !isNaN(p.t))
+              .sort((a, b) => a.t - b.t);
+}
+
+/* Open-Meteo returns columns, not rows: time[] alongside each variable[]. */
+function meteoSeries(wx, field){
+  const h = wx && wx.hourly;
+  if (!h || !h.time) return [];
+  return h.time.map((t, i) => ({t: parseTime(t), v: num(h[field][i])}))
+               .filter(p => !isNaN(p.t))
+               .sort((a, b) => a.t - b.t);
+}
+
+const at  = (pts, t) => pts.find(p => +p.t === +t);
+const fmt = n => Math.round(n).toLocaleString();
+
+/* Always Las Vegas time, never the reader's. "Demand peaked at 5 PM" is only
+   a fact about a desert city if the clock is the desert city's. */
+const vegasHour = d => d.toLocaleTimeString('en-US',
+  {timeZone: 'America/Los_Angeles', hour: 'numeric'});
+
+function pearson(xs, ys){
+  const n = xs.length;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++){
+    const dx = xs[i] - mx, dy = ys[i] - my;
+    sxy += dx * dy; sxx += dx * dx; syy += dy * dy;
+  }
+  const d = Math.sqrt(sxx * syy);
+  return d ? sxy / d : 0;
+}
+
+/* How far demand trails temperature.
+
+   The obvious version of this — find the hottest hour, find the biggest load
+   hour, subtract — falls apart the moment the window covers more than one day,
+   because both of those repeat daily and the two maxima can land on different
+   days. It gives you answers like "the peak came 24 hours after the heat",
+   which is arithmetic rather than a finding.
+
+   So it's a cross-correlation instead: shift temperature forward an hour at a
+   time and keep the shift that matches the load curve best. */
+function bestLag(temps, demand, maxLag){
+  const T = new Map(temps.filter(p => p.v !== null).map(p => [+p.t, p.v]));
+  let best = {lag: null, r: -2, n: 0};
+  for (let lag = 0; lag <= maxLag; lag++){
+    const xs = [], ys = [];
+    demand.forEach(p => {
+      if (p.v === null) return;
+      const tv = T.get(+p.t - lag * 3600000);
+      if (tv !== undefined){ xs.push(tv); ys.push(p.v); }
+    });
+    if (xs.length < 12) continue;
+    const r = pearson(xs, ys);
+    if (r > best.r) best = {lag, r, n: xs.length};
+  }
+  return best;
+}
+
+/* Highest value in a series, restricted to one day so daily cycles don't
+   compete with each other. */
+function peakSince(pts, since){
+  return pts.filter(p => p.v !== null && +p.t >= since)
+            .reduce((a, b) => (!a || b.v > a.v) ? b : a, null);
+}
+
+async function load(){
+  const {values, failures, total} = await gather({
+    grid: grab(SRC.grid, 'raw'),
+    wx:   grab(SRC.wx,   'raw')
+  });
+
+  const now  = FIXTURE ? new Date('2026-09-14T10:00:00Z') : new Date();
+  const from = new Date(+now - HOURS_BACK * 3600 * 1000);
+  /* One shared clock for all three charts, so a spike in the load curve sits
+     directly above the hour that caused it. */
+  const t0 = +from;
+  let   t1 = +now + 22 * 3600 * 1000;
+
+  let demand = [], fcast = [], lastD = null, lastF = null;
+
+  if (values.grid){
+    demand = eiaSeries(values.grid, 'D' ).filter(p => +p.t >= t0);
+    fcast  = eiaSeries(values.grid, 'DF').filter(p => +p.t >= t0);
+    if (fcast.length) t1 = Math.max(t1, +fcast[fcast.length - 1].t);
+
+    lastD = [...demand].reverse().find(p => p.v !== null) || null;
+    if (lastD){
+      put('vLoad', fmt(lastD.v), 'MW', 'calm',
+          'metered at ' + vegasHour(lastD.t) + ' local');
+      lastF = at(fcast, lastD.t) || null;
+    }
+
+    if (lastD && lastF && lastF.v !== null){
+      const miss = lastD.v - lastF.v;
+      const pct  = Math.abs(miss) / lastF.v * 100;
+      put('vMiss', (miss > 0 ? '+' : '−') + fmt(Math.abs(miss)), 'MW',
+          pct > 6 ? 'storm' : pct > 3 ? 'lively' : 'calm',
+          pct.toFixed(1) + '% ' + (miss > 0 ? 'over forecast' : 'under forecast'));
+    }
+
+    lines($('cLoad'), [
+      {pts: fcast,  stroke: '#8fd3ff', dash: true, alpha: .75, dot: false, name: 'day-ahead forecast'},
+      {pts: demand, stroke: css('--accent'), fill: 'rgba(77,163,255,.22)', name: 'metered demand'}
+    ], {t0, t1, now: +now, label: v => (v / 1000).toFixed(1) + 'k',
+        pad: {l: 46, r: 10, t: 12, b: 22}});
+  }
+
+  let temps = [], feels = [];
+  if (values.wx){
+    temps = meteoSeries(values.wx, 'temperature_2m').filter(p => +p.t >= t0 && +p.t <= t1);
+    feels = meteoSeries(values.wx, 'apparent_temperature').filter(p => +p.t >= t0 && +p.t <= t1);
+    const cur = values.wx.current || {};
+
+    if (num(cur.temperature_2m) !== null){
+      const hi = values.wx.daily && values.wx.daily.temperature_2m_max
+               ? num(values.wx.daily.temperature_2m_max[2]) : null;
+      put('vTemp', Math.round(cur.temperature_2m), '°F',
+          cur.temperature_2m >= 100 ? 'storm' : cur.temperature_2m >= 85 ? 'lively' : 'calm',
+          hi !== null ? 'high today ' + Math.round(hi) + '°' : '');
+    }
+    if (num(cur.apparent_temperature) !== null){
+      const rh = num(cur.relative_humidity_2m);
+      put('vFeels', Math.round(cur.apparent_temperature), '°F', 'calm',
+          rh !== null ? rh + '% humidity' : '');
+    }
+
+    /* Past and future come back as one continuous array. Splitting them at the
+       present hour is the only way the chart can be honest about which half is
+       a measurement and which half is a model. */
+    const past   = temps.filter(p => +p.t <= +now);
+    const ahead  = temps.filter(p => +p.t >= +now);
+    lines($('cTemp'), [
+      {pts: ahead, stroke: '#ffb86b', dash: true, alpha: .7, dot: false, name: 'forecast'},
+      {pts: past,  stroke: '#ffb86b', fill: 'rgba(255,184,107,.18)', name: 'measured'}
+    ], {t0, t1, now: +now, label: v => v.toFixed(0) + '°'});
+  }
+
+  /* Error bars only where both a metered hour and a forecast hour exist. */
+  let errs = [];
+  if (demand.length && fcast.length){
+    errs = demand
+      .filter(p => p.v !== null)
+      .map(p => { const f = at(fcast, p.t); return f && f.v !== null ? {t: p.t, v: p.v - f.v} : null; })
+      .filter(Boolean);
+  }
+  const span = errs.length ? Math.max(...errs.map(e => Math.abs(e.v))) : 0;
+  bars($('cErr'), errs, {
+    lo: -span * 1.15 || -1, hi: span * 1.15 || 1, divs: 4,
+    label: v => (v > 0 ? '+' : '') + (v / 1000).toFixed(1) + 'k',
+    color: v => Math.abs(v) > span * .6 ? '#ffb86b' : css('--accent'),
+    emptyMsg: 'no overlapping hours'
+  });
+
+  /* The interesting question is not either number on its own, it's whether
+     they move together, and by how long the grid trails the thermometer. */
+  if (demand.length > 12 && temps.length > 12){
+    const past     = temps.filter(p => +p.t <= +now);
+    const {lag, r} = bestLag(past, demand, 8);
+    const dayAgo   = +now - 24 * 3600 * 1000;
+    const peakLoad = peakSince(demand, dayAgo);
+    const peakTemp = peakSince(past, dayAgo);
+    const mae = errs.length
+      ? errs.reduce((s, e) => s + Math.abs(e.v), 0) / errs.length : null;
+    const live = demand.filter(p => p.v !== null);
+    const meanLoad = live.length ? live.reduce((s, p) => s + p.v, 0) / live.length : null;
+
+    if (lag !== null && r > .5){
+      $('vLead').textContent = lag === 0
+        ? 'Yes, almost in step with it.'
+        : 'Yes, about ' + lag + ' hour' + (lag === 1 ? '' : 's') + ' behind it.';
+      $('nLead').textContent =
+        (lag === 0
+          ? ' The two curves line up best with no shift at all (r = ' + r.toFixed(2) +
+            ' across ' + HOURS_BACK + ' hours).'
+          : ' Shifting the temperature curve forward ' + lag + ' hour' + (lag === 1 ? '' : 's') +
+            ' lines it up with demand most closely (r = ' + r.toFixed(2) + ' across ' +
+            HOURS_BACK + ' hours). Buildings hold heat, so the air conditioning keeps working ' +
+            'after the air has started cooling.') +
+        (peakLoad && peakTemp
+          ? ' In the last 24 hours the valley topped out at ' + fmt(peakLoad.v) + ' MW around ' +
+            vegasHour(peakLoad.t) + ' local, with the hottest hour at ' +
+            Math.round(peakTemp.v) + '° around ' + vegasHour(peakTemp.t) + '.'
+          : '') +
+        (mae !== null && meanLoad
+          ? ' The day-ahead forecast has been off by ' + fmt(mae) + ' MW an hour on average, ' +
+            'about ' + (mae / meanLoad * 100).toFixed(1) + '% of load.'
+          : '');
+    } else if (lag !== null){
+      $('vLead').textContent = 'Not closely today.';
+      $('nLead').textContent =
+        ' The best alignment between the two curves is only r = ' + r.toFixed(2) + ', which is ' +
+        'weak. Mild days do this: when nothing needs cooling, load is driven by everything else ' +
+        'instead.';
+    }
+  } else if (failures >= total){
+    $('vLead').textContent = 'No data.';
+    $('nLead').textContent = ' Neither feed answered, so there is nothing honest to say here. It retries every ten minutes.';
+  }
+
+  reportStatus(failures, total, 'EIA and Open-Meteo');
+}
+
+monitor(load, REFRESH_MS);
+</script>
+</body>
+</html>

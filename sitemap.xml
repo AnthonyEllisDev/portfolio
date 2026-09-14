@@ -10,4 +10,9 @@
   <url><loc>https://anthonyellis.dev/demos/galaxy.html</loc><priority>0.6</priority></url>
   <url><loc>https://anthonyellis.dev/demos/arterial.html</loc><priority>0.6</priority></url>
   <url><loc>https://anthonyellis.dev/demos/aquarium.html</loc><priority>0.6</priority></url>
+  <url><loc>https://anthonyellis.dev/projects/grid/</loc><priority>0.8</priority></url>
+  <url><loc>https://anthonyellis.dev/projects/quakes/</loc><priority>0.8</priority></url>
+  <url><loc>https://anthonyellis.dev/demos/grid.html</loc><priority>0.6</priority></url>
+  <url><loc>https://anthonyellis.dev/demos/quakes.html</loc><priority>0.6</priority></url>
+  <url><loc>https://anthonyellis.dev/legal/</loc><priority>0.3</priority></url>
 </urlset>

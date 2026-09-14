@@ -47,10 +47,11 @@
     </div>
   </div>
 
-  <div class="shotframe">
+  <div class="playable" data-src="/demos/arterial.html">
     <img src="/assets/img/arterial.jpg"
          alt="Top-down view of a simulated city at dusk: a grid of streets and avenues with lane markings and roundabouts, colored residential, commercial and industrial zones, buildings with lit windows, and cars queued at signals."
          width="1200" height="750">
+    <button class="start" type="button"><span class="disc"></span><b>Run the network</b><small>Canvas · starts on this page</small></button>
   </div>
   <p class="caption">About a minute of drawing: 24 junctions, 35 roads, 115 buildings, 585 residents, 7:11 in the evening.</p>
 
@@ -254,5 +255,6 @@
 </footer>
 
 <script>document.querySelectorAll('.yr').forEach(e => e.textContent = new Date().getFullYear());</script>
+<script src="/assets/js/playable.js" defer></script>
 </body>
 </html>

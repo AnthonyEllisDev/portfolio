@@ -47,10 +47,11 @@
     </div>
   </div>
 
-  <div class="shotframe">
+  <div class="playable" data-src="/demos/galaxy.html">
     <img src="/assets/img/galaxy-full.jpg"
          alt="A spiral galaxy of 160,000 stars rendered as a glowing point cloud, with generator parameter panels on the left and a stellar census and faction list on the right."
          width="1400" height="875">
+    <button class="start" type="button"><span class="disc"></span><b>Run the galaxy</b><small>WebGL · starts on this page</small></button>
   </div>
   <p class="caption">Seed <code>F80D-8FB6-2DB3</code>: a four-arm spiral, 160,000 stars, nine factions. Anyone who types that code gets this galaxy.</p>
 
@@ -244,5 +245,6 @@ worker
 </footer>
 
 <script>document.querySelectorAll('.yr').forEach(e => e.textContent = new Date().getFullYear());</script>
+<script src="/assets/js/playable.js" defer></script>
 </body>
 </html>

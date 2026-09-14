@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ground Under Las Vegas — Anthony Ellis</title>
+<meta name="description" content="Every earthquake USGS recorded in the last 24 hours, plotted by distance and bearing from Las Vegas. Live data, drawn to canvas.">
+<meta name="theme-color" content="#070a10">
+<script>
+if (window.self !== window.top || /[?&]embed\b/.test(location.search))
+  document.documentElement.classList.add('embedded');
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+/* Only this page has a table, so it stays here rather than in the shared sheet. */
+.quaketable{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:2px}
+.quaketable th{text-align:left;font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint);font-weight:400;padding:0 10px 8px 0}
+.quaketable td{padding:7px 10px 7px 0;border-top:1px solid var(--line);
+  color:var(--dim);vertical-align:top}
+.quaketable td.m{font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap}
+.quaketable td.d{font-variant-numeric:tabular-nums;white-space:nowrap}
+.quaketable .place{color:var(--dim)}
+.quaketable a{color:var(--accent);text-decoration:none}
+.quaketable a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/#work">Work</a>
+      <a href="/projects/quakes/">About this</a>
+      <a href="/#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="mon-head">
+    <div>
+      <h1>The ground under Las Vegas</h1>
+      <p class="src">Every earthquake the USGS recorded anywhere in the last 24 hours, plotted
+      by how far it was from here and which way. Refreshed every five minutes.</p>
+    </div>
+    <span class="status" id="status" role="status" aria-live="polite">
+      <span class="led"></span><span id="statusText">Connecting</span>
+    </span>
+  </div>
+
+  <dl class="readouts">
+    <div class="ro">
+      <dt>Recorded worldwide</dt>
+      <dd class="dash" id="vCount">—</dd>
+      <span class="note" id="nCount"></span>
+    </div>
+    <div class="ro">
+      <dt>Largest</dt>
+      <dd class="dash" id="vBig">—<span class="unit">M</span></dd>
+      <span class="note" id="nBig"></span>
+    </div>
+    <div class="ro">
+      <dt>Closest to here</dt>
+      <dd class="dash" id="vNear">—<span class="unit">km</span></dd>
+      <span class="note" id="nNear"></span>
+    </div>
+    <div class="ro">
+      <dt>Most recent</dt>
+      <dd class="dash" id="vLast">—</dd>
+      <span class="note" id="nLast"></span>
+    </div>
+  </dl>
+
+  <div class="panels">
+    <div class="panel wide">
+      <h2>Distance and bearing from Las Vegas</h2>
+      <p class="sub">Rings every 200 km out to 800. Dot size is magnitude, brightness is how
+      recently it happened. There is no map underneath because a map would be a decoration —
+      what matters here is how far away it was.</p>
+      <canvas id="cRadar" height="420"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Magnitude over the last 24 hours</h2>
+      <p class="sub">Everything the network recorded, worldwide. The floor is detection
+      sensitivity rather than geology: small quakes only appear where instruments are dense.</p>
+      <canvas id="cMag" height="200"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Nearest five</h2>
+      <p class="sub">Closest to Las Vegas in the last 24 hours, whatever their size.</p>
+      <table class="quaketable">
+        <thead><tr><th>Mag</th><th>Distance</th><th>Where</th></tr></thead>
+        <tbody id="tNear"><tr><td colspan="3" style="color:var(--faint)">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <h2>Anything to worry about?</h2>
+    <p><span class="big" id="vVerdict">Working it out…</span><span id="nVerdict"></span></p>
+  </div>
+
+  <div class="mon-foot">
+    <p><strong>Where this comes from.</strong> The
+    <a href="https://earthquake.usgs.gov/earthquakes/feed/">USGS earthquake feed</a>, fetched by
+    your browser directly, about 150 KB for a day of events worldwide. No key, no server of mine
+    in between, nothing stored. USGS sees the request, the same way they would if you opened
+    their site yourself.</p>
+    <p><strong>What the numbers mean.</strong> Magnitude is logarithmic: each whole step is
+    roughly 32 times the energy. Distances are great-circle from downtown Las Vegas to the
+    epicentre, which is a point on the surface above where the rupture started, not where the
+    shaking was worst. Depth is not drawn at all.</p>
+    <p><strong>What it is not.</strong> This is a record of what already happened. Nothing here
+    forecasts anything: earthquake prediction, in the sense people usually mean, does not exist.</p>
+    <p><a href="/projects/quakes/">How this page was built</a> · <a href="/#work">All projects</a></p>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© <span class="yr">2026</span> Anthony Ellis</span>
+    <span><a href="/#work">All projects</a></span>
+  </div>
+</footer>
+
+<script src="/assets/js/panel.js"></script>
+<script>
+/* ===========================================================================
+   The ground under Las Vegas
+
+   One feed: the USGS 24-hour summary, GeoJSON, keyless and cross-origin
+   friendly. The only real work is turning latitude and longitude into
+   something a person standing in Las Vegas can read, which means great-circle
+   distance and initial bearing rather than a map projection.
+
+   Shared plumbing is in /assets/js/panel.js.
+   ======================================================================== */
+
+const FEED = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
+const SRC  = new URLSearchParams(location.search).has('fixture')
+  ? '/fixtures/quakes.json' : FEED;
+
+const REFRESH_MS = 300000;
+const VEGAS = {lat: 36.1699, lon: -115.1398};
+const RINGS = [200, 400, 600, 800];        // km
+const MAX_KM = 800;
+
+const rad = d => d * Math.PI / 180;
+const deg = r => r * 180 / Math.PI;
+
+/* Great-circle distance, haversine. Good to a fraction of a percent at these
+   ranges, and the epicentre itself is less precise than that. */
+function distanceKm(lat, lon){
+  const R = 6371;
+  const dLat = rad(lat - VEGAS.lat), dLon = rad(lon - VEGAS.lon);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(rad(VEGAS.lat)) * Math.cos(rad(lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/* Initial bearing. Not the same as the bearing you'd hold the whole way, but
+   it is the direction you would set off in, which is what a compass rose on a
+   chart like this is claiming. */
+function bearing(lat, lon){
+  const y = Math.sin(rad(lon - VEGAS.lon)) * Math.cos(rad(lat));
+  const x = Math.cos(rad(VEGAS.lat)) * Math.sin(rad(lat)) -
+            Math.sin(rad(VEGAS.lat)) * Math.cos(rad(lat)) * Math.cos(rad(lon - VEGAS.lon));
+  return (deg(Math.atan2(y, x)) + 360) % 360;
+}
+
+const COMPASS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+const compass = b => COMPASS[Math.round(b / 22.5) % 16];
+const ago = ms => {
+  const m = Math.round(ms / 60000);
+  if (m < 60) return m + ' min ago';
+  const h = Math.round(m / 60);
+  return h < 24 ? h + ' hr ago' : Math.round(h / 24) + ' d ago';
+};
+
+/* ── the radar ─────────────────────────────────────────────────────────── */
+function radar(cv, quakes, now){
+  const {g, w, h} = fit(cv);
+  const cx = w / 2, cy = h / 2;
+  const R = Math.min(w, h) / 2 - 26;
+  if (R <= 10) return;
+
+  g.strokeStyle = css('--line'); g.lineWidth = 1;
+  g.font = '10px ui-monospace, monospace'; g.fillStyle = css('--faint');
+
+  RINGS.forEach(km => {
+    const r = R * km / MAX_KM;
+    g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+    g.fillText(km + ' km', cx + 5, cy - r + 12);   // inside the ring, clear of "N" 
+  });
+
+  g.save(); g.strokeStyle = css('--line');
+  [0, 45, 90, 135].forEach(a => {
+    const t = rad(a);
+    g.beginPath();
+    g.moveTo(cx - Math.sin(t) * R, cy + Math.cos(t) * R);
+    g.lineTo(cx + Math.sin(t) * R, cy - Math.cos(t) * R);
+    g.stroke();
+  });
+  g.restore();
+
+  g.fillStyle = css('--faint'); g.textAlign = 'center';
+  [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([lbl, a]) => {
+    const t = rad(a);
+    g.fillText(lbl, cx + Math.sin(t) * (R + 13), cy - Math.cos(t) * (R + 13) + 3.5);
+  });
+  g.textAlign = 'left';
+
+  // Las Vegas itself
+  g.beginPath(); g.arc(cx, cy, 3, 0, Math.PI * 2);
+  g.fillStyle = css('--text'); g.fill();
+
+  const within = quakes.filter(q => q.km <= MAX_KM);
+  within.forEach(q => {
+    const r = R * q.km / MAX_KM, t = rad(q.bearing);
+    const x = cx + Math.sin(t) * r, y = cy - Math.cos(t) * r;
+    const age = (now - q.time) / (24 * 3600 * 1000);        // 0 fresh … 1 a day old
+    const size = Math.max(2.2, 2 + (q.mag ?? 0) * 1.9);
+    const col = (q.mag ?? 0) >= 4 ? '255,138,122' : (q.mag ?? 0) >= 2.5 ? '255,184,107' : '77,163,255';
+    g.beginPath(); g.arc(x, y, size, 0, Math.PI * 2);
+    g.fillStyle = `rgba(${col},${(0.85 - age * 0.55).toFixed(2)})`; g.fill();
+    g.strokeStyle = `rgba(${col},${(0.95 - age * 0.5).toFixed(2)})`; g.lineWidth = 1; g.stroke();
+  });
+
+  if (!within.length){
+    g.fillStyle = css('--faint'); g.font = '12px ui-monospace, monospace';
+    g.textAlign = 'center';
+    g.fillText('nothing within ' + MAX_KM + ' km today', cx, cy + R + 18);
+    g.textAlign = 'left';
+  }
+}
+
+/* ── magnitude against time ────────────────────────────────────────────── */
+function magChart(cv, quakes, now){
+  const {g, w, h} = fit(cv);
+  const pad = {l: 30, r: 10, t: 12, b: 22};
+  if (!quakes.length){ empty(g, w, h); return; }
+
+  const hi = Math.max(6, Math.ceil(Math.max(...quakes.map(q => q.mag ?? 0))));
+  axes(g, w, h, pad, 0, hi, v => v.toFixed(0), 3);
+
+  const t0 = now - 24 * 3600 * 1000;
+  const X = t => pad.l + (w - pad.l - pad.r) * ((t - t0) / (24 * 3600 * 1000));
+  const Y = v => pad.t + (h - pad.t - pad.b) * (1 - v / hi);
+
+  quakes.forEach(q => {
+    if (q.mag === null || q.time < t0) return;
+    const x = X(q.time), y = Y(q.mag);
+    const col = q.mag >= 4 ? '255,138,122' : q.mag >= 2.5 ? '255,184,107' : '77,163,255';
+    g.strokeStyle = `rgba(${col},.32)`; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x, h - pad.b); g.lineTo(x, y); g.stroke();
+    g.beginPath(); g.arc(x, y, 1.9, 0, Math.PI * 2);
+    g.fillStyle = `rgba(${col},.95)`; g.fill();
+  });
+
+  g.fillStyle = css('--faint'); g.font = '10px ui-monospace, monospace';
+  g.fillText('24 h ago', pad.l, h - 7);
+  g.textAlign = 'right'; g.fillText('now', w - pad.r, h - 7); g.textAlign = 'left';
+}
+
+/* ── load ──────────────────────────────────────────────────────────────── */
+async function load(){
+  const {values, failures, total} = await gather({quakes: grab(SRC, 'raw')});
+
+  if (!values.quakes){
+    $('vVerdict').textContent = 'No data.';
+    $('nVerdict').textContent = ' Could not reach the USGS feed. It retries every five minutes.';
+    reportStatus(failures, total, 'USGS');
+    return;
+  }
+
+  const now = Date.now();
+  const quakes = (values.quakes.features || []).map(f => {
+    const [lon, lat, depth] = f.geometry.coordinates;
+    return {
+      mag: num(f.properties.mag), place: f.properties.place || 'unknown',
+      time: f.properties.time, url: f.properties.url, depth: num(depth),
+      km: distanceKm(lat, lon), bearing: bearing(lat, lon)
+    };
+  }).filter(q => Number.isFinite(q.km)).sort((a, b) => b.time - a.time);
+
+  put('vCount', quakes.length, '', 'calm', 'in the last 24 hours');
+
+  const big = quakes.filter(q => q.mag !== null).sort((a, b) => b.mag - a.mag)[0];
+  if (big) put('vBig', big.mag.toFixed(1), 'M',
+               big.mag >= 6 ? 'severe' : big.mag >= 5 ? 'storm' : 'lively', big.place);
+
+  const byDistance = [...quakes].sort((a, b) => a.km - b.km);
+  const near = byDistance[0];
+  if (near) put('vNear', Math.round(near.km), 'km', near.km < 150 ? 'storm' : 'calm',
+                'M' + (near.mag !== null ? near.mag.toFixed(1) : '?') + ' ' + compass(near.bearing) +
+                ' · ' + near.place);
+
+  const last = quakes[0];
+  if (last) put('vLast', ago(now - last.time), '', 'calm',
+                'M' + (last.mag !== null ? last.mag.toFixed(1) : '?') + ' · ' + last.place);
+
+  radar($('cRadar'), quakes, now);
+  magChart($('cMag'), quakes, now);
+
+  const tbody = $('tNear');
+  tbody.innerHTML = '';
+  byDistance.slice(0, 5).forEach(q => {
+    const tr = document.createElement('tr');
+    const m = document.createElement('td'); m.className = 'm';
+    m.textContent = q.mag !== null ? 'M' + q.mag.toFixed(1) : '—';
+    const d = document.createElement('td'); d.className = 'd';
+    d.textContent = Math.round(q.km).toLocaleString() + ' km ' + compass(q.bearing);
+    const pl = document.createElement('td'); pl.className = 'place';
+    if (q.url){
+      const a = document.createElement('a');
+      a.href = q.url; a.textContent = q.place; a.rel = 'noopener';
+      pl.appendChild(a);
+    } else pl.textContent = q.place;
+    pl.appendChild(document.createTextNode(' · ' + ago(now - q.time)));
+    tr.append(m, d, pl); tbody.appendChild(tr);
+  });
+  if (!byDistance.length)
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--faint)">Nothing recorded.</td></tr>';
+
+  /* The honest answer is almost always no, and it should say so plainly
+     rather than manufacturing drama out of a quiet day. */
+  const local = quakes.filter(q => q.km <= MAX_KM);
+  const felt  = local.filter(q => (q.mag ?? 0) >= 3);
+  if (!local.length){
+    $('vVerdict').textContent = 'No.';
+    $('nVerdict').textContent = ' Nothing at all within ' + MAX_KM + ' km of Las Vegas in the ' +
+      'last 24 hours. Most days look like this.';
+  } else if (!felt.length){
+    $('vVerdict').textContent = 'No.';
+    $('nVerdict').textContent = ' ' + local.length + ' event' + (local.length === 1 ? '' : 's') +
+      ' within ' + MAX_KM + ' km, the largest M' +
+      Math.max(...local.map(q => q.mag ?? 0)).toFixed(1) + ' and the closest ' +
+      Math.round(byDistance[0].km) + ' km away. Below about M3 nobody notices without an ' +
+      'instrument, and the Basin and Range is doing this continuously.';
+  } else {
+    const worst = felt.reduce((a, b) => b.mag > a.mag ? b : a);
+    $('vVerdict').textContent = felt.length + ' worth noticing.';
+    $('nVerdict').textContent = ' ' + felt.length + ' event' + (felt.length === 1 ? '' : 's') +
+      ' at M3 or above within ' + MAX_KM + ' km, the largest M' + worst.mag.toFixed(1) +
+      ' about ' + Math.round(worst.km) + ' km ' + compass(worst.bearing) +
+      '. Enough to be felt nearby, not enough to do anything.';
+  }
+
+  reportStatus(failures, total, 'USGS');
+}
+
+monitor(load, REFRESH_MS);
+</script>
+</body>
+</html>

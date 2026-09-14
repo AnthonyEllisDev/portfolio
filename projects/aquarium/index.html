@@ -47,10 +47,11 @@
     </div>
   </div>
 
-  <div class="shotframe">
+  <div class="playable" data-src="/demos/aquarium.html">
     <img src="/assets/img/aquarium.jpg"
          alt="Hundreds of small glowing fish in five colors flocking through dark blue water above a sculpted sand bed, lit by drifting light rays."
          width="1200" height="750">
+    <button class="start" type="button"><span class="disc"></span><b>Run the aquarium</b><small>Canvas · starts on this page</small></button>
   </div>
   <p class="caption">390 fish in five color groups over 6,327 grains of sand, with a couple of dunes and a trench cut by hand. The panel top right counts the neighbor checks.</p>
 
@@ -196,5 +197,6 @@
 </footer>
 
 <script>document.querySelectorAll('.yr').forEach(e => e.textContent = new Date().getFullYear());</script>
+<script src="/assets/js/playable.js" defer></script>
 </body>
 </html>

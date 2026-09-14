@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heat and Load — Anthony Ellis</title>
+<meta name="description" content="Las Vegas electricity demand against the day-ahead forecast and the temperature that drives it. Notes on a keyless EIA endpoint, cross-correlation instead of peak-hunting, and why a national total has a seam in it.">
+<link rel="canonical" href="https://anthonyellis.dev/projects/grid/">
+<meta name="theme-color" content="#070a10">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="anthonyellis.dev">
+<meta property="og:title" content="Heat and Load">
+<meta property="og:description" content="What Las Vegas draws from the grid, what Nevada Power predicted it would draw, and the desert temperature that decides both.">
+<meta property="og:url" content="https://anthonyellis.dev/projects/grid/">
+<meta property="og:image" content="https://anthonyellis.dev/assets/img/grid.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="mark" href="/"><span class="glyph" aria-hidden="true"></span>Anthony&nbsp;Ellis</a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="/#work">Work</a>
+      <a href="/#path" class="hide-sm">Path</a>
+      <a href="/#about">About</a>
+      <a href="/#contact">Contact</a>
+      <a href="https://github.com/AnthonyEllisDev">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="case-hero">
+    <a class="backlink" href="/#work">← All projects</a>
+    <p class="eyebrow">Live data · Canvas</p>
+    <h1>Heat and Load</h1>
+    <p class="lede">
+      In a desert city the electricity demand curve is mostly the temperature curve, an hour or
+      two late. This puts the two next to each other, along with the forecast the utility filed
+      yesterday, so you can see how close they got.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/demos/grid.html">Open it full screen <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="https://github.com/AnthonyEllisDev/portfolio/blob/main/demos/grid.html">View source</a>
+    </div>
+  </div>
+
+  <div class="playable" data-src="/demos/grid.html?embed=1">
+    <img src="/assets/img/grid.jpg" width="1200" height="675" loading="lazy"
+         alt="Charts of Las Vegas electricity demand against a day-ahead forecast and the daily temperature curve.">
+    <button class="start" type="button"><span class="disc"></span><b>Open the monitor</b><small>Live EIA and Open-Meteo data · starts on this page</small></button>
+  </div>
+
+  <dl class="factgrid">
+    <div class="fact"><dt>Role</dt><dd>Sole developer</dd></div>
+    <div class="fact"><dt>Stack</dt><dd>Vanilla JS · Canvas 2D</dd></div>
+    <div class="fact"><dt>Data</dt><dd>EIA-930 · Open-Meteo</dd></div>
+    <div class="fact"><dt>Region</dt><dd>Nevada Power (NEVP)</dd></div>
+    <div class="fact"><dt>API keys</dt><dd>None required</dd></div>
+    <div class="fact"><dt>Dependencies</dt><dd>None</dd></div>
+  </dl>
+
+  <article class="case">
+
+    <h2>What it shows</h2>
+    <p>
+      Three things on one clock. Metered electricity demand for Nevada Power's balancing
+      authority — Las Vegas and most of southern Nevada — which lands within the hour. The
+      day-ahead forecast the same authority filed yesterday, which runs about twenty-two hours
+      past the present. And the temperature over the same window, past and forecast.
+    </p>
+    <p>
+      The interesting part isn't any of those curves. It's the distance between the second and
+      the first: a utility committing, a day in advance, to a number it will be judged on.
+    </p>
+
+    <h2>The keyless endpoint</h2>
+    <p>
+      EIA's documented v2 API wants a registered key, which for a static site means either
+      publishing the key in the page source or standing up a proxy to hide it. Neither is
+      appealing: the first is a key you've given away, the second is a server you now have to
+      keep alive.
+    </p>
+    <p>
+      The Hourly Electric Grid Monitor — EIA's own public dashboard — is fed by a different
+      endpoint that needs no key and sends permissive CORS headers. It answers in about 5 kB.
+      So the page uses that, and there is nothing between the visitor and EIA.
+    </p>
+    <div class="notecard">
+      <p>Worth checking before you build the proxy: the endpoint behind a public dashboard is
+      often reachable and often keyless, because the dashboard is a browser too.</p>
+    </div>
+
+    <h2>Why one utility and not the country</h2>
+    <p>
+      The first version asked for the US Lower 48 totals, which look more impressive and are
+      quietly broken. National figures are sums over sixty-odd balancing authorities, and the
+      final hours of the national day-ahead forecast are summed over only the ones that have
+      filed so far. The series doesn't stop; it collapses, from about 205,000 MW to 45,000 to
+      14,000 across three hours.
+    </p>
+    <p>
+      Drawn without thinking, that is a cliff at the right-hand edge of the chart that looks
+      like a grid failure and is actually a paperwork deadline. A single authority has no such
+      seam, and Nevada Power happens to be the one that keeps the lights on where I live.
+    </p>
+
+    <h2>Cross-correlation, not peak-hunting</h2>
+    <p>
+      The question the page ends on is how far demand trails temperature. The obvious way to
+      answer it is to find the hottest hour, find the highest-demand hour, and subtract.
+    </p>
+    <p>
+      That works for exactly one day. Widen the window to forty-eight hours and both of those
+      maxima repeat, so the two you find can land on different days and the answer comes back
+      as "the peak arrived twenty-four hours after the heat" — arithmetic, delivered with a
+      straight face. My first version did this, and the fixture data caught it.
+    </p>
+    <p>
+      So it shifts the temperature series forward an hour at a time, scores each shift against
+      demand with a Pearson correlation, and keeps the best one. It reports the coefficient
+      alongside the lag, because a lag with a weak correlation behind it is not a finding, and
+      on a mild day that is exactly what you get.
+    </p>
+
+    <h2>One clock for three charts</h2>
+    <p>
+      Metered demand stops at the present hour. The forecast runs into tomorrow. Temperature
+      covers both. Plotting each by array position would stretch every series to fill the frame
+      independently, so a spike in demand would sit above the wrong hour of weather.
+    </p>
+    <p>
+      All three charts take an explicit time domain instead, computed once and passed in. That
+      is the only reason the vertical "now" marker means anything: it is the same instant on
+      every panel.
+    </p>
+
+    <h2>What I'd do next</h2>
+    <ul>
+      <li>Fuel mix, which would show how much of an evening peak is gas and how much is the
+        solar that has just stopped producing. It needs the keyed API, so it needs a decision
+        about the key first.</li>
+      <li>Interchange — southern Nevada imports a lot, and the gap between demand and local
+        generation is the more honest picture of where the power comes from.</li>
+      <li>Scoring the forecast over a month rather than two days, which is the timescale on
+        which "how good are they at this" is actually a question.</li>
+    </ul>
+
+    <div class="cta-row" style="margin-top:36px">
+      <a class="btn btn-primary" href="/demos/grid.html">Open it full screen <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn" href="mailto:anthony@anthonyellis.dev">Ask me about it</a>
+    </div>
+
+    <nav class="pager">
+      <a href="/projects/space-weather/">← Space Weather Monitor</a>
+      <a href="/projects/quakes/">The Ground Under Las Vegas →</a>
+    </nav>
+  </article>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© <span class="yr">2026</span> Anthony Ellis</span>
+    <span><a href="/#work">All projects</a></span>
+  </div>
+</footer>
+
+<script>document.querySelectorAll('.yr').forEach(e => e.textContent = new Date().getFullYear());</script>
+<script src="/assets/js/playable.js" defer></script>
+</body>
+</html>

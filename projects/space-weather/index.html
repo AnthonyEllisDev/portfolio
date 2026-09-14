@@ -47,6 +47,12 @@
     </div>
   </div>
 
+  <div class="playable" data-src="/demos/space-weather.html?embed=1">
+    <img src="/assets/img/space-weather.jpg" width="1200" height="675" loading="lazy"
+         alt="A dark dashboard showing solar wind speed, magnetic field and K index charts.">
+    <button class="start" type="button"><span class="disc"></span><b>Open the monitor</b><small>Live NOAA data · about 250 KB · starts on this page</small></button>
+  </div>
+
   <dl class="factgrid">
     <div class="fact"><dt>Role</dt><dd>Sole developer</dd></div>
     <div class="fact"><dt>Stack</dt><dd>Vanilla JS · Canvas 2D</dd></div>
@@ -205,7 +211,7 @@
 
     <nav class="pager">
       <a href="/projects/aquarium/">← Aquarium &amp; cellular automata</a>
-      <a href="/#work">All projects →</a>
+      <a href="/projects/grid/">Heat and Load →</a>
     </nav>
   </article>
 </main>
@@ -218,5 +224,6 @@
 </footer>
 
 <script>document.querySelectorAll('.yr').forEach(e => e.textContent = new Date().getFullYear());</script>
+<script src="/assets/js/playable.js" defer></script>
 </body>
 </html>
